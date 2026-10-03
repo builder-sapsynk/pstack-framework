@@ -10,7 +10,7 @@ python tools/validate.py
 python -m unittest discover -s tests -q
 ```
 
-The deterministic archive is `dist/sapsynk-pstack-0.1.1.zip`. The package includes portable Agent Plugins 1.0 metadata and native Codex and Claude compatibility manifests. `framework.json` records the exact semantic source digest; `parity.json` records original-file preservation and skill-body hashes.
+The deterministic archive is `dist/sapsynk-pstack-0.1.2.zip`. The package includes portable Agent Plugins 1.0 metadata and native Codex and Claude compatibility manifests. `framework.json` records the exact semantic source digest; `parity.json` records original-file preservation and skill-body hashes.
 
 ## Install in Codex
 

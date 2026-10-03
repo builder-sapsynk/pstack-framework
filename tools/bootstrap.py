@@ -106,7 +106,7 @@ def bootstrap(project, revision, update=False, name=None, email=None, do_install
         digest = computed
     if not digest or len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
         raise ValueError('an exact semantic content digest is required; supply a pinned --local checkout or --digest')
-    lock = {'schema_version': 1, 'version': '0.1.1', 'source': SOURCE, 'revision': revision,
+    lock = {'schema_version': 1, 'version': '0.1.2', 'source': SOURCE, 'revision': revision,
             'upstream_revision': UPSTREAM, 'source_digest': digest, 'plugin': 'sapsynk-pstack@sapsynk-pstack'}
     lockpath = project / '.pstack/framework.lock.json'
     if lockpath.exists() and json.loads(lockpath.read_text()) != lock and not update:

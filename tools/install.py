@@ -35,7 +35,7 @@ def installed_package(executable='codex', home=None):
     return package
 
 
-def verify_package(package, digest, version='0.1.1', upstream_commit=None):
+def verify_package(package, digest, version='0.1.2', upstream_commit=None):
     """Check content identity of the actual installed package, independently of the lock."""
     identity = pathlib.Path(package) / 'framework.json'
     if not identity.is_file():

@@ -14,4 +14,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: sapsynk-pstack
-          path: dist/sapsynk-pstack-0.1.1.zip
+          path: dist/sapsynk-pstack-0.1.2.zip

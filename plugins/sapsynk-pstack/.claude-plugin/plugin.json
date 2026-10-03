@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "Sapsynk"
+  },
+  "description": "Complete portable Sapsynk distribution of pinned pstack workflows.",
+  "homepage": "https://github.com/builder-sapsynk/pstack-framework",
+  "keywords": [
+    "pstack",
+    "engineering",
+    "codex",
+    "portable"
+  ],
+  "license": "MIT",
+  "name": "sapsynk-pstack",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

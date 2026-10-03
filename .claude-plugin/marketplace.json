@@ -1,0 +1,13 @@
+{
+  "name": "sapsynk",
+  "owner": {
+    "name": "Sapsynk"
+  },
+  "plugins": [
+    {
+      "description": "Complete portable Sapsynk distribution of pinned pstack workflows.",
+      "name": "sapsynk-pstack",
+      "source": "./plugins/sapsynk-pstack"
+    }
+  ]
+}

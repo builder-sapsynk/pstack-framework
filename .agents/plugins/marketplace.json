@@ -1,0 +1,20 @@
+{
+  "interface": {
+    "displayName": "Sapsynk pstack"
+  },
+  "name": "sapsynk-pstack",
+  "plugins": [
+    {
+      "category": "Productivity",
+      "name": "sapsynk-pstack",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./plugins/sapsynk-pstack",
+        "source": "local"
+      }
+    }
+  ]
+}

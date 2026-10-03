@@ -1,0 +1,26 @@
+{
+  "author": {
+    "name": "Sapsynk"
+  },
+  "description": "Complete portable Sapsynk distribution of pinned pstack workflows.",
+  "homepage": "https://github.com/builder-sapsynk/pstack-framework",
+  "interface": {
+    "category": "Developer Tools",
+    "composerIcon": "./assets/logo.png",
+    "developerName": "Sapsynk",
+    "displayName": "Sapsynk pstack",
+    "logo": "./assets/logo.png",
+    "longDescription": "Pinned upstream pstack with portable host adapters and external agent tools.",
+    "shortDescription": "Portable engineering workflows"
+  },
+  "keywords": [
+    "pstack",
+    "engineering",
+    "codex",
+    "portable"
+  ],
+  "license": "MIT",
+  "name": "sapsynk-pstack",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

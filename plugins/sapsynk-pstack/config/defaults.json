@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "review_mode": "independent-gpt-instances",
+  "default_host": "codex",
+  "roles": {
+    "feature, refactoring": {"provider": "codex", "transport": "native", "model": "gpt-6.1-sol", "effort": "high"},
+    "bug-fix": {"provider": "codex", "transport": "native", "model": "gpt-6.1-sol", "effort": "high"},
+    "perf-issue": {"provider": "codex", "transport": "native", "model": "gpt-6.1-sol", "effort": "xhigh"},
+    "hillclimb": {"provider": "codex", "transport": "native", "model": "gpt-6.1-sol", "effort": "xhigh"},
+    "judgment and prose": {"provider": "codex", "transport": "native", "model": "gpt-6-astra", "effort": "high"},
+    "hardest tasks": {"provider": "codex", "transport": "native", "model": "gpt-6-astra", "effort": "xhigh"},
+    "how explorer": {"provider": "codex", "transport": "native", "model": "gpt-6.1-sol", "effort": "high"},
+    "how explainer": {"provider": "codex", "transport": "native", "model": "gpt-6-astra", "effort": "high"},
+    "why investigators": {"alias": "inherit-parent"},
+    "why synthesizer": {"alias": "inherit-parent"},
+    "reflect tooling": {"provider": "codex", "transport": "native", "model": "gpt-6.1-sol", "effort": "high"},
+    "reflect judgment, divergent, synthesizer": {"provider": "codex", "transport": "native", "model": "gpt-6-astra", "effort": "high"},
+    "arena runners": [{"provider": "codex", "transport": "native", "model": "gpt-6.1-sol", "effort": "xhigh"}, {"provider": "codex", "transport": "native", "model": "gpt-6-astra", "effort": "xhigh"}],
+    "arena cross-judge pool": [{"provider": "codex", "transport": "native", "model": "gpt-6-astra", "effort": "xhigh"}],
+    "swarm workers": {"provider": "codex", "transport": "native", "model": "gpt-6.1-sol", "effort": "high"},
+    "architect runners": [{"provider": "codex", "transport": "native", "model": "gpt-6.1-sol", "effort": "xhigh"}, {"provider": "codex", "transport": "native", "model": "gpt-6-astra", "effort": "xhigh"}],
+    "interrogate reviewers": [{"provider": "codex", "transport": "native", "model": "gpt-6.1-sol", "effort": "xhigh"}, {"provider": "codex", "transport": "native", "model": "gpt-6-astra", "effort": "xhigh"}]
+  },
+  "providers": {
+    "claude": {"executable": "claude", "transport": "claude-code"},
+    "grok": {"executable": "grok", "transport": "grok-build"},
+    "codex": {"executable": "codex", "transport": "codex-cli"}
+  },
+  "capability_policy": {
+    "missing_provider": "unavailable-lane",
+    "provider_fallback": "explicit-only",
+    "cross_family_review": "requires-successful-real-provider-runs",
+    "separate_vms": "requires-host-backend",
+    "unattended_continuation": "requires-verified-scheduler-delivery"
+  }
+}

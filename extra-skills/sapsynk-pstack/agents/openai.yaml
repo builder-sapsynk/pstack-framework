@@ -1,0 +1,5 @@
+interface:
+  display_name: "Sapsynk pstack"
+  short_description: "Persistent portable engineering workflows"
+policy:
+  allow_implicit_invocation: true

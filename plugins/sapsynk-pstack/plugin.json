@@ -1,0 +1,30 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "author": {
+    "name": "Sapsynk"
+  },
+  "description": "Complete portable Sapsynk distribution of pinned pstack workflows.",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "category": "Developer Tools",
+        "composerIcon": "./assets/logo.png",
+        "developerName": "Sapsynk",
+        "displayName": "Sapsynk pstack",
+        "logo": "./assets/logo.png",
+        "longDescription": "Pinned upstream pstack with portable host adapters and external agent tools.",
+        "shortDescription": "Portable engineering workflows"
+      }
+    }
+  },
+  "homepage": "https://github.com/builder-sapsynk/pstack-framework",
+  "keywords": [
+    "pstack",
+    "engineering",
+    "codex",
+    "portable"
+  ],
+  "license": "MIT",
+  "name": "sapsynk-pstack",
+  "version": "0.1.0"
+}

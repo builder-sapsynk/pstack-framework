@@ -11,7 +11,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 NAME = 'sapsynk-pstack'
-VERSION = '0.1.2'
+VERSION = '0.1.3'
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
@@ -108,7 +108,8 @@ def build(root=ROOT):
         if path.endswith('/SKILL.md'):
             policy = destination.parent / 'agents/openai.yaml'
             policy.parent.mkdir(exist_ok=True)
-            policy.write_text('policy:\n  allow_implicit_invocation: false\n')
+            override = root / 'config/skill-metadata' / destination.parent.name / 'openai.yaml'
+            policy.write_bytes(override.read_bytes() if override.is_file() else b'policy:\n  allow_implicit_invocation: false\n')
     for directory in ('adapters', 'runtime', 'config'):
         for path, source in files(root / directory).items():
             if any(part in ('node_modules', '.git', '.pstack', '__pycache__') for part in Path(path).parts):

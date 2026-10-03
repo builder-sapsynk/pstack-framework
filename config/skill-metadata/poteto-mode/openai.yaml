@@ -1,0 +1,6 @@
+interface:
+  display_name: "Poteto Mode"
+  short_description: "Apply pstack workflows and verify real work"
+  default_prompt: "Use $poteto-mode to guide this task with the installed Sapsynk pstack workflows."
+policy:
+  allow_implicit_invocation: true

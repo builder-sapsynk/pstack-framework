@@ -47,7 +47,9 @@ def validate(root=ROOT):
             if rows[path].get('original_body_sha256') != body_hash:
                 raise ValueError('Original body provenance mismatch: ' + path)
             policy = package / Path(path).parent / 'agents/openai.yaml'
-            if policy.read_text() != 'policy:\n  allow_implicit_invocation: false\n':
+            override = root / 'config/skill-metadata' / Path(path).parent.name / 'openai.yaml'
+            expected_policy = override.read_bytes() if override.is_file() else b'policy:\n  allow_implicit_invocation: false\n'
+            if policy.read_bytes() != expected_policy:
                 raise ValueError('Invalid native invocation policy: ' + path)
         actual = (package / path).read_bytes()
         if actual != expected or rows[path]['package_sha256'] != sha(actual) or rows[path]['source_sha256'] != lock['files'][path]:

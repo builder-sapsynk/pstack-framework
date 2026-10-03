@@ -77,6 +77,20 @@ class PackageTests(unittest.TestCase):
         (plugin / 'skills/poteto-mode/SKILL.md').write_text('changed')
         with self.assertRaisesRegex(ValueError, 'parity'):
             validate(self.root)
+    def test_entry_skills_are_discoverable_and_leaves_explicit(self):
+        plugin, _ = build(self.root)
+        for slug, title in [('poteto-mode', 'Poteto Mode'), ('setup-pstack', 'Setup pstack')]:
+            policy = (plugin / 'skills' / slug / 'agents/openai.yaml').read_text()
+            self.assertIn('allow_implicit_invocation: true', policy)
+            self.assertIn('display_name: "' + title + '"', policy)
+            self.assertIn('$' + slug, policy)
+        self.assertEqual((plugin / 'skills/architect/agents/openai.yaml').read_text(), 'policy:\n  allow_implicit_invocation: false\n')
+        validate(self.root)
+    def test_entry_discovery_cannot_regress_silently(self):
+        plugin, _ = build(self.root)
+        (plugin / 'skills/poteto-mode/agents/openai.yaml').write_text('policy:\n  allow_implicit_invocation: false\n')
+        with self.assertRaisesRegex(ValueError, 'Invalid native invocation policy'):
+            validate(self.root)
 
 if __name__ == '__main__':
     unittest.main()

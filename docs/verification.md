@@ -1,5 +1,19 @@
 # Release verification — 2026-10-03
 
+## Current release: 0.1.2
+
+Published private source: https://github.com/builder-sapsynk/pstack-framework. Project content pin: `6f8245cab6c13a9ff26e838016e7d42dea84d681`, semantic digest `3a8b44d405f7025e2e70cf43e6ba0d50daef0853677ad2fb1b71809b3e305f67`. Git refs and GitHub's commit API both verified this source publication and the requested commit identity.
+
+Private personal cloud plugin: https://chatgpt.com/plugins/plugins_6ac0b2ee244881918f771e5b572f3d99, release `pluginrel_6ac0b7575f548191b5e3e5539b439d3a`. Metadata readback verified version 0.1.2. Native Codex installation and project startup pin checks passed.
+
+41 framework tests pass. A fresh framework clone rebuilt the same semantic identity as the installed plugin. A fresh application checkout ran its bootstrap against the exact remote revision, installed the remote marketplace, and passed the installed identity check.
+
+Both device login processes completed their actual credential exchanges. Live external Codex execution then authenticated successfully. An initial sandboxed tool invocation could not read a file because the outer sandbox hid Codex's reserved socket directory; approved host execution with the child's read-only sandbox retained resolved this. Job `a5b8c3593e434d67b486d7e72ea5a27f` successfully read the package identity, returned the correct name/version, and recorded command exit 0. Model evidence is pinned argv; the provider did not report a separate served model identity.
+
+GitHub account repository creation still lacks the integration's Administration write grant; the account owner created the empty private repository, after which source push/readback succeeded. Existing repository Git, content and PR operations are available. Claude/Grok live authentication remains unverified. Protected credential setup is still required per fresh host; no cross-environment credential binding is claimed. Account cloud publication remains distinct from account installation, while native CLI installation is verified.
+
+## Historical initial release: 0.1.0
+
 Framework source commit: `d691f7030c921c021ca02a0d930c48fe33ce071d`.
 Semantic digest: `66e2fa5bd15d5bf72f18a667039214ffe36251f3960cb681745c7ece5763f92c`.
 Upstream source: Cursor plugins commit `23e4138daa01c42d4969f7a5465f82704e64f798`, pstack 0.15.6.

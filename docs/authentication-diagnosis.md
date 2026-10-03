@@ -1,5 +1,7 @@
 # Authentication diagnosis
 
+Current outcome: the actual GitHub and Codex device flows completed. External Codex authenticated, and a file-read task succeeded after launching the bounded worker through approved host execution while retaining its own read-only sandbox. The new framework repository has been published after the account owner created it. The diagnosis below records the initial failure and explains why account permission, credential exchange and sandbox tool execution require separate checks. See [verification.md](verification.md) for current evidence.
+
 Official references read on 2026-10-03:
 
 - https://developers.openai.com/codex/auth — cached login, headless device authentication and credential storage.

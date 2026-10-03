@@ -9,11 +9,22 @@ import subprocess
 import signal
 import time
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('runner', Path(__file__).resolve().parents[1] / 'runtime/cli.py')
 r = importlib.util.module_from_spec(spec); spec.loader.exec_module(r)
 
 class RuntimeTests(unittest.TestCase):
+    def test_codex_credentials_survive_provider_filter(self):
+        credentials = {'OPENAI_API_KEY': 'fixture-openai', 'CODEX_API_KEY': 'fixture-codex',
+                       'CODEX_ACCESS_TOKEN': 'fixture-access', 'GH_TOKEN': 'fixture-github',
+                       'ANTHROPIC_API_KEY': 'fixture-anthropic', 'HTTPS_PROXY': 'fixture-proxy'}
+        with patch.dict(os.environ, credentials, clear=True):
+            env = r.environment('codex')
+        for name in ('OPENAI_API_KEY', 'CODEX_API_KEY', 'CODEX_ACCESS_TOKEN', 'HTTPS_PROXY'):
+            self.assertEqual(env[name], credentials[name])
+        self.assertNotIn('GH_TOKEN', env)
+        self.assertNotIn('ANTHROPIC_API_KEY', env)
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); self.root = Path(self.tmp.name)
         self.binary = self.root / 'claude'
@@ -46,6 +57,8 @@ else:
         dialect = {'auth_argv': ['auth', 'status'], 'run_argv': ['-p', '--model', '{model}', '--permission-mode', '{mode}'], 'required_flags': ['--model', '--permission-mode']}
         receipt = r.run(dict(self.request, provider='grok', dialect=dialect))
         self.assertEqual(receipt['status'], 'complete')
+        self.assertTrue(receipt['authPreflight'])
+        self.assertTrue(receipt['authVerified'])
     def test_codex_pinned_model(self):
         self.binary.write_text("""#!/usr/bin/env python3
 import sys,json

@@ -55,9 +55,9 @@ class PersistenceTests(unittest.TestCase):
         self.assertTrue(instructions.read_text().startswith('Other instructions\n'))
 
     def test_native_install_receipt_verifies_cached_artifact_and_codex_home(self):
-        cache = self.root / 'plugins/cache/sapsynk-pstack/sapsynk-pstack/0.1.0'
+        cache = self.root / 'plugins/cache/sapsynk-pstack/sapsynk-pstack/0.1.1'
         cache.mkdir(parents=True)
-        (cache / 'framework.json').write_text(json.dumps({'version': '0.1.0', 'source_digest': 'd' * 64}))
+        (cache / 'framework.json').write_text(json.dumps({'version': '0.1.1', 'source_digest': 'd' * 64}))
         cli = self.root / 'codex-fixture'
         cli.write_text('#!/bin/sh\nif [ "$2" = "add" ]; then\n  echo "Installed plugin root: ' + str(cache) + '"\nfi\n')
         cli.chmod(0o755)
@@ -70,11 +70,11 @@ class PersistenceTests(unittest.TestCase):
             install('fixture', executable=str(cli), expected_digest='e' * 64)
 
     def test_cached_discovery_ignores_live_source_metadata(self):
-        cache = self.root / 'plugins/cache/sapsynk-pstack/sapsynk-pstack/0.1.0'
+        cache = self.root / 'plugins/cache/sapsynk-pstack/sapsynk-pstack/0.1.1'
         cache.mkdir(parents=True)
         cli = self.root / 'codex'
         metadata = {'installed': [{'pluginId': 'sapsynk-pstack@sapsynk-pstack', 'installed': True,
-                                  'enabled': True, 'version': '0.1.0', 'source': {'path': '/incorrect-live-source'}}]}
+                                  'enabled': True, 'version': '0.1.1', 'source': {'path': '/incorrect-live-source'}}]}
         cli.write_text('#!/bin/sh\ncat <<\'JSON\'\n' + json.dumps(metadata) + '\nJSON\n')
         cli.chmod(0o755)
         with patch.dict(os.environ, {'CODEX_HOME': str(self.root)}):
@@ -90,7 +90,7 @@ class PersistenceTests(unittest.TestCase):
         bootstrap(self.root, 'a' * 40, do_install=False, digest='d' * 64)
         package = self.root / 'installed-plugin'
         package.mkdir()
-        identity = {'version': '0.1.0', 'source_digest': 'd' * 64,
+        identity = {'version': '0.1.1', 'source_digest': 'd' * 64,
                     'upstream_commit': '23e4138daa01c42d4969f7a5465f82704e64f798'}
         (package / 'framework.json').write_text(json.dumps(identity))
         verify_package(package, 'd' * 64)
@@ -117,7 +117,7 @@ class PersistenceTests(unittest.TestCase):
         subprocess.run(['git', '-C', str(source), '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.com', 'commit', '-qm', 'fixture'], check=True)
         package = source / 'plugins/sapsynk-pstack'
         package.mkdir(parents=True)
-        (package / 'framework.json').write_text(json.dumps({'version': '0.1.0', 'source_digest': 'd' * 64, 'upstream_commit': '23e4138daa01c42d4969f7a5465f82704e64f798'}))
+        (package / 'framework.json').write_text(json.dumps({'version': '0.1.1', 'source_digest': 'd' * 64, 'upstream_commit': '23e4138daa01c42d4969f7a5465f82704e64f798'}))
         subprocess.run(['git', '-C', str(source), 'add', '.'], check=True)
         subprocess.run(['git', '-C', str(source), '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.com', 'commit', '-qm', 'identity'], check=True)
         revision = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()

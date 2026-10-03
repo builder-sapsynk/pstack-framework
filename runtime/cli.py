@@ -15,7 +15,7 @@ import time
 import uuid
 
 PROVIDERS = ('claude', 'grok', 'codex')
-KEYS = {'claude': {'ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN'}, 'grok': {'XAI_API_KEY', 'GROK_API_KEY'}, 'codex': {'OPENAI_API_KEY'}}
+KEYS = {'claude': {'ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN'}, 'grok': {'XAI_API_KEY', 'GROK_API_KEY'}, 'codex': {'OPENAI_API_KEY', 'CODEX_API_KEY', 'CODEX_ACCESS_TOKEN'}}
 
 
 def environment(provider):
@@ -300,7 +300,7 @@ def run(raw, on_start=None):
         code, auth_text, _ = execute([command] + auth)
         if not authenticated(req['provider'], code, auth_text):
             raise ValueError('provider authentication preflight failed')
-        receipt['authVerified'] = True
+        receipt['authPreflight'] = True
         receipt['argv'] = [command] + args
         code, output, _ = execute([command] + args, req['brief'], stage='provider')
         if code:
@@ -308,7 +308,7 @@ def run(raw, on_start=None):
         response, reported, metrics = parse_output(req['provider'], output, req['model'])
         (job / 'response.txt').write_text(response + '\n')
         os.chmod(job / 'response.txt', 0o600)
-        receipt.update(status='complete', reportedModel=reported, modelVerified=reported is not None, modelEvidence='provider-report' if reported else 'pinned-argv', metrics=metrics)
+        receipt.update(status='complete', authVerified=True, reportedModel=reported, modelVerified=reported is not None, modelEvidence='provider-report' if reported else 'pinned-argv', metrics=metrics)
     except TimeoutError:
         receipt.update(status='timed-out', error='explicit deadline exceeded')
     except InterruptedError:

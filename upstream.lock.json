@@ -4,7 +4,7 @@
   "path": "pstack",
   "commit": "23e4138daa01c42d4969f7a5465f82704e64f798",
   "upstream_version": "0.15.6",
-  "framework_version": "0.1.0",
+  "framework_version": "0.1.1",
   "files": {
     ".cursor-plugin/plugin.json": "0f94062c113ae8a13b33836e03c42f52a9ddd66189241d3b277b78d15f0479a2",
     ".gitignore": "8ffe9de56bd30c1a95cd945262d6e3ac355ada4111551dde41f67851b9f1fc55",

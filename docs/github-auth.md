@@ -69,3 +69,29 @@ inspect readiness; it cannot create secret bindings or change startup policy.
 Keep the GitHub connection's permissions and terminal credential readiness as
 separate checks. Project commit identity is independent of authentication and
 is restored by this framework's project bootstrap.
+
+## Device approval must finish in the terminal
+
+GitHub's device flow has three steps: request codes, user approval in the browser,
+and the application polling the token endpoint to obtain the credential. A browser
+success page proves approval; it does not prove the CLI received or saved the new
+token. Keep the initiating CLI process alive until it reports completion. If the
+VM restarted or that process exited before exchange, inspect the current saved
+credential readiness and start a new coordinated flow when the original code
+cannot be recovered or has expired. GitHub device codes expire after 900 seconds.
+Do not start simultaneous flows, or treat approval of an old code as approval of
+the currently running flow.
+
+A newly completed CLI authorization can solve missing OAuth scopes when that
+credential is the effective outbound identity. It cannot itself enlarge another
+application's permission grant or prove that a managed proxy uses the new token.
+Verify the actual authorized repository creation operation after completion.
+
+## Official references
+
+Read against GitHub's current documentation on 2026-10-03:
+
+- [Create a repository for the authenticated user](https://docs.github.com/en/rest/repos/repos#create-a-repository-for-the-authenticated-user): classic OAuth requires `public_repo` or `repo` for public creation, and `repo` for private creation.
+- [GitHub App Administration permission endpoints](https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps#repository-permissions-for-administration): authenticated-user and organization repository creation require repository Administration write; endpoint-specific additional permissions may apply.
+- [Choosing GitHub App permissions](https://docs.github.com/en/apps/creating-github-apps/setting-up-a-github-app/choosing-permissions-for-a-github-app): the app and user grants both constrain user access tokens; app owners or managers change requested permissions and installation owners approve the change.
+- [OAuth device flow](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow): the application must poll for and receive the access token after browser approval, within the device code's validity period.

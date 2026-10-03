@@ -1,2 +1,6 @@
+interface:
+  display_name: "Setup pstack"
+  short_description: "Configure portable model roles and reasoning"
+  default_prompt: "Use $setup-pstack to configure this project's portable model roles and reasoning budgets."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

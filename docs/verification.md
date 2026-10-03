@@ -1,0 +1,20 @@
+# Release verification — 2026-10-03
+
+Framework source commit: `d691f7030c921c021ca02a0d930c48fe33ce071d`.
+Semantic digest: `66e2fa5bd15d5bf72f18a667039214ffe36251f3960cb681745c7ece5763f92c`.
+Upstream source: Cursor plugins commit `23e4138daa01c42d4969f7a5465f82704e64f798`, pstack 0.15.6.
+
+- Framework tests: 40 passed (9 packaging, 8 persistence, 23 runtime).
+- Original upstream orch/watch-pr suite: 52 passed, 206 assertions; original strict TypeScript check passed. Dependencies and tests ran in a temporary copy, preserving pristine source.
+- Artifact validation: all 160 original files, 49 upstream skills and 23 playbooks accounted for; 54 skills including companions. No introduced unresolved links. One placeholder `url` link already exists upstream.
+- Native Codex installation: enabled plugin installed at the actual CODEX_HOME cache. Cached framework identity verified. Project startup content-pin check passed.
+- Private personal cloud plugin created: `plugins_6ac0b2ee244881918f771e5b572f3d99`, release `pluginrel_6ac0b2f2682081918880b9b5dbab8bb5`. Readback confirmed manifest, framework digest and runtime source. Account publication is not proof of installation across chats.
+- Current project instructions, pin, startup script and requested commit identity saved in a local application commit. Remote framework bootstrap depends on publishing the source repository.
+
+## Unresolved operational requirements
+
+GitHub repository creation returned `403 Resource not accessible by integration` through REST and GraphQL, including the explicitly selected saved GitHub CLI login after reported browser approval. Existing repository access and refs succeeded. The app's contents and pull_requests grants are write; administration is absent. No new framework GitHub repository or remote source commit has been published. Credentials cannot be added to managed cloud configuration with the available tools.
+
+External Codex login preflight succeeded, but the actual bounded read-only execution failed: access token could not be refreshed because the session had logged out or changed accounts. Failed receipt and private provider events were retained; no successful external execution is claimed. Claude Code's reviewed CLI was installed outside the package, but authentication was unavailable; Grok Build executable and compatible structured-output dialect remain unavailable. Fixture tests establish adapter behavior, not live provider access.
+
+No claim of complete cross-host functional equivalence is made. Cursor automation delivery, separate VMs, Graphite and optional integrations need real backing capabilities. Source and workflow preservation are verified; those services are not supplied by instructions alone.

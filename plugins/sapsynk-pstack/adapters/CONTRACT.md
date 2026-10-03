@@ -4,7 +4,7 @@ Read this contract before applying an upstream workflow. The complete pstack sou
 
 ## Start and resolve resources
 
-Resolve the installed package root from the loaded skill's absolute path, or its skill-provider resource URI. Read the matching host adapter. Read project `.pstack/framework.lock.json` and `.pstack/config.json` when present; otherwise read this package's `config/defaults.json`. A project pin controls the release. Do not update it during a run.
+Resolve the installed package root from the loaded skill's absolute path, or its skill-provider resource URI. Read the matching host adapter and this package's `config/defaults.json`. Read project `.pstack/framework.lock.json` and `.pstack/config.json` when present. Resolve role bindings from package defaults, then replace each role explicitly configured by the project. An identity-only project configuration retains all default roles. A project pin controls the release. Do not update it during a run.
 
 Use the main `sapsynk-pstack` entry to load upstream `poteto-mode` and select its playbook. Most leaf skills are explicit-only and are read by the router; installation alone is not a standing project instruction. Project bootstrap and optional global host instructions provide persistence.
 
@@ -12,7 +12,7 @@ Resolve upstream skill names within THIS plugin. If another installed plugin exp
 
 ## Role bindings
 
-Preserve upstream role labels, panel entry count, budget intent, candidate independence and judging order. Configuration separates provider, transport, model and effort. Resolve a role once at the coordinator. Validate native model/effort against the actual spawn schema; `auto` or `inherit-parent` omits both overrides. A missing role uses an explicit inherited binding, not an unavailable hard-coded Cursor slug. Log the requested and resolved binding and any permitted fallback. Setup updates portable project/user configuration rather than writing a Cursor file on Codex.
+Preserve upstream role labels, the resolved panel entry count, budget intent, candidate independence and judging order. Configuration separates provider, transport, model and effort. Resolve a role once at the coordinator. A project panel replaces the entire default panel, including its entry count. Validate native model/effort against the actual spawn schema; `auto` or `inherit-parent` omits both overrides. A role missing from both project configuration and package defaults uses an explicit inherited binding, not an unavailable hard-coded Cursor slug. Log the requested and resolved binding and any permitted fallback. Setup updates portable project configuration rather than writing a Cursor file on Codex. Save budget intent alongside the complete role table, and preserve identity and unrelated project settings. The coordinator reads role choices and supplies the supported tool arguments; configuration does not switch the parent chat model. The external worker CLI accepts explicit model and effort values and does not resolve native roles itself.
 
 Our initial configuration uses available GPT tiers and explicitly declares same-family review. That is an environment binding, not a claim to reproduce a Claude/GPT/Grok panel. A workflow requiring a different family remains unmet until that family's actual terminal receipt passes. Do not silently replace a failed provider or count an unavailable call as an agreeing vote. Use native children when the provider belongs to the coordinating host and its schema permits the selected model. Use the external-agent runtime for other providers.
 

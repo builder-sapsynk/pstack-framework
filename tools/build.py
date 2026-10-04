@@ -11,7 +11,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 NAME = 'sapsynk-pstack'
-VERSION = '0.1.4'
+VERSION = '0.1.5'
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()

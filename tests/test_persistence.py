@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 from bootstrap import bootstrap
+from build import VERSION
 from install import install, managed_block, verify_package, installed_package
 
 
@@ -27,6 +28,8 @@ class PersistenceTests(unittest.TestCase):
             receipt = bootstrap(self.root, 'a' * 40, name='Builder', email='builder@sapsynk.com', do_install=False, digest='d' * 64)
         self.assertTrue(receipt['project_lock_written'])
         self.assertEqual(receipt['native_installation'], 'not_requested')
+        lock = json.loads((self.root / '.pstack/framework.lock.json').read_text())
+        self.assertEqual(lock['version'], VERSION)
         text = (self.root / 'AGENTS.md').read_text()
         self.assertTrue(text.startswith('Existing rules.\n'))
         self.assertEqual(text.count('<!-- sapsynk-pstack:start -->'), 1)
@@ -90,7 +93,7 @@ class PersistenceTests(unittest.TestCase):
         bootstrap(self.root, 'a' * 40, do_install=False, digest='d' * 64)
         package = self.root / 'installed-plugin'
         package.mkdir()
-        identity = {'version': '0.1.3', 'source_digest': 'd' * 64,
+        identity = {'version': VERSION, 'source_digest': 'd' * 64,
                     'upstream_commit': '23e4138daa01c42d4969f7a5465f82704e64f798'}
         (package / 'framework.json').write_text(json.dumps(identity))
         verify_package(package, 'd' * 64)
@@ -117,7 +120,7 @@ class PersistenceTests(unittest.TestCase):
         subprocess.run(['git', '-C', str(source), '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.com', 'commit', '-qm', 'fixture'], check=True)
         package = source / 'plugins/sapsynk-pstack'
         package.mkdir(parents=True)
-        (package / 'framework.json').write_text(json.dumps({'version': '0.1.3', 'source_digest': 'd' * 64, 'upstream_commit': '23e4138daa01c42d4969f7a5465f82704e64f798'}))
+        (package / 'framework.json').write_text(json.dumps({'version': VERSION, 'source_digest': 'd' * 64, 'upstream_commit': '23e4138daa01c42d4969f7a5465f82704e64f798'}))
         subprocess.run(['git', '-C', str(source), 'add', '.'], check=True)
         subprocess.run(['git', '-C', str(source), '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.com', 'commit', '-qm', 'identity'], check=True)
         revision = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()
@@ -138,6 +141,26 @@ class PersistenceTests(unittest.TestCase):
         (self.root / 'restored').unlink()
         subprocess.run([sys.executable, str(script)], check=True, capture_output=True)
         self.assertTrue((self.root / 'restored').exists())
+
+    def test_explicit_version_is_exact_and_legacy_callers_skip_it(self):
+        package = self.root / 'installed-plugin'
+        package.mkdir()
+        upstream = '23e4138daa01c42d4969f7a5465f82704e64f798'
+        identity = {'version': VERSION, 'source_digest': 'd' * 64, 'upstream_commit': upstream}
+        (package / 'framework.json').write_text(json.dumps(identity))
+        verify_package(package, 'd' * 64)
+        verify_package(package, 'd' * 64, VERSION, upstream)
+        with self.assertRaises(ValueError):
+            verify_package(package, 'd' * 64, '0.1.3', upstream)
+        cli = self.root / 'codex-fixture'
+        cli.write_text('#!/bin/sh\nif [ "$2" = "add" ]; then\n  echo "Installed plugin root: ' + str(package) + '"\nfi\n')
+        cli.chmod(0o755)
+        receipt = install('fixture', executable=str(cli), expected_digest='d' * 64)
+        self.assertTrue(receipt['installed_identity_verified'])
+        receipt = install('fixture', executable=str(cli), expected_digest='d' * 64, expected_version=VERSION)
+        self.assertTrue(receipt['installed_identity_verified'])
+        with self.assertRaises(ValueError):
+            install('fixture', executable=str(cli), expected_digest='d' * 64, expected_version='0.1.3')
 
 
 if __name__ == '__main__':

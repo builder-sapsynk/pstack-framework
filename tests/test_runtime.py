@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('runner', Path(__file__).resolve().parents[1] / 'runtime/cli.py')
 r = importlib.util.module_from_spec(spec); spec.loader.exec_module(r)
+import grok_native as gn
 
 class RuntimeTests(unittest.TestCase):
     def test_codex_credentials_survive_provider_filter(self):
@@ -208,7 +209,7 @@ import sys,json,os,time,subprocess
 from pathlib import Path
 args=sys.argv[1:]
 if '--version' in args: print('1.0.46 fixture')
-elif '--help' in args: print('--model --cwd --permission-mode --sandbox --output-format --tools --disallowed-tools --no-subagents --disable-web-search --prompt-file --reasoning-effort')
+elif '--help' in args: print('--model --cwd --permission-mode --sandbox --output-format --tools --disallowed-tools --no-subagents --disable-web-search --prompt-file --reasoning-effort --allow --no-plan')
 elif args==['models']: print('You are logged in with grok.com.\\n\\nAvailable models:\\n  * grok-4.7 (default)\\n  - grok-4.7-build-fast')
 elif args==['inspect','--json']: print(Path('inspect.json').read_text())
 else:
@@ -381,5 +382,113 @@ else:
         for vendor in ('CURSOR', 'CLAUDE'):
             for surface in ('SKILLS', 'RULES', 'AGENTS', 'MCPS', 'HOOKS', 'SESSIONS'):
                 self.assertEqual(env[f'GROK_{vendor}_{surface}_ENABLED'], '0')
+
+    def test_task_lane_accepts_web_usage_and_legacy_parser_does_not(self):
+        events = grok_events()
+        events[2]['usage']['server_tool_use']['web_search_requests'] = 2
+        events[2]['modelUsage']['grok-4.7-build']['webSearchRequests'] = 2
+        with self.assertRaises(ValueError): self.parse(events)
+        response, _, metrics = r.parse_output('grok', '\n'.join(map(json.dumps, events)), 'grok-4.7', gn.TASK_DIALECT, '/fixture')
+        self.assertEqual(response, 'answer')
+        self.assertEqual(metrics['usage']['server_tool_use']['web_search_requests'], 2)
+        self.assertEqual(metrics['modelUsage']['grok-4.7-build']['webSearchRequests'], 2)
+        events[2]['usage']['server_tool_use']['web_fetch_requests'] = 1
+        with self.assertRaises(ValueError): r.parse_output('grok', '\n'.join(map(json.dumps, events)), 'grok-4.7', gn.TASK_DIALECT, '/fixture')
+
+    def test_task_profile_header_environment_inspect_and_doctor(self):
+        request = dict(self.request, dialect=dict(gn.TASK_DIALECT), mode='read-only', capability_scope=gn.capability_scope('read-only'),
+                       host_boundary={'host': 'codex-managed-exec', 'writable_roots': [str(self.root)], 'read_only_probe': '/proc'})
+        with self.assertRaisesRegex(ValueError, 'explicit capability scope'): r.validate(dict(request, capability_scope={}))
+        with self.assertRaisesRegex(ValueError, 'exact command grants'): r.validate(dict(request, allowed_commands=['python3 -m unittest discover -s tests -q']))
+        _, _, args, _ = r.profile(dict(request, resume_session='11111111-1111-4111-8111-111111111111'))
+        self.assertIn('--resume', args); self.assertNotIn('--tools', args); self.assertNotIn('--disable-web-search', args); self.assertNotIn('--no-subagents', args)
+        self.assertNotIn('--yolo', args); self.assertIn('*', args); self.assertEqual(args[args.index('--permission-mode') + 1], 'dontAsk'); self.assertEqual(args[args.index('--sandbox') + 1], 'off')
+        with patch.dict(os.environ, {'XAI_API_KEY': 'provider', 'OPENAI_API_KEY': 'other', 'GH_TOKEN': 'gh', 'HTTPS_PROXY': 'proxy'}, clear=True):
+            env = r.environment('grok', gn.TASK_DIALECT, 'isolated-write')
+        self.assertEqual(env['GROK_SUBAGENTS'], '1'); self.assertEqual(env['GROK_WEB_FETCH'], '1'); self.assertEqual(env['GROK_WRITE_FILE'], '1')
+        self.assertEqual(env['GROK_MEMORY'], '1'); self.assertEqual(env['GROK_TOOL_SEARCH'], '1'); self.assertEqual(env['GROK_LSP_TOOLS'], '1'); self.assertEqual(env['XAI_API_KEY'], 'provider'); self.assertEqual(env['HTTPS_PROXY'], 'proxy')
+        self.assertNotIn('OPENAI_API_KEY', env); self.assertNotIn('GH_TOKEN', env)
+        self.assertEqual(r.environment('grok', gn.TASK_DIALECT, 'read-only')['GROK_WRITE_FILE'], '0')
+        grok_home = self.root / 'grok-home'
+        discovery = copy.deepcopy(self.inspect)
+        discovery['agents'] = [{'name': 'explore', 'source': {'type': 'bundled', 'path': str(grok_home / 'bundled/agents/explore.md')}}]
+        with self.assertRaises(ValueError): r.inspect_grok(json.dumps(discovery), str(grok_home), gn.DIALECT)
+        self.assertEqual(r.inspect_grok(json.dumps(discovery), str(grok_home), gn.TASK_DIALECT)['agents'][0]['name'], 'explore')
+        discovery['agents'][0]['source']['path'] = str(self.root / 'custom-agent.md')
+        with self.assertRaises(ValueError): r.inspect_grok(json.dumps(discovery), str(grok_home), gn.TASK_DIALECT)
+        config = self.root / '.pstack'; config.mkdir()
+        (config / 'config.json').write_text(json.dumps({'providers': {'grok': {'executable': str(self.binary), 'dialect': gn.TASK_DIALECT}}}))
+        item = r.doctor(str(self.root))['providers']['grok']
+        self.assertEqual(item['profile'], 'grok-build-native-task-1')
+        self.assertIn('managed-host task live execution probe', item['status'])
+        self.assertEqual(item['toolAccess'], 'must be verified in live init')
+        self.assertTrue(item['helpPreflight'])
+
+    def test_task_run_discovers_inventory_and_keeps_web_usage(self):
+        tools = ['grep', 'list_dir', 'read_file', 'run_terminal_command', 'spawn_subagent', 'todo_write', 'web_fetch', 'web_search']
+        events = grok_events(cwd=str(self.root))
+        events[0]['tools'] = tools
+        events[2]['usage']['server_tool_use']['web_search_requests'] = 2
+        events[2]['modelUsage']['grok-4.7-build']['webSearchRequests'] = 2
+        (self.root / 'events.json').write_text(json.dumps(events))
+        self.binary.write_text('''#!/usr/bin/env python3
+import sys, json, os
+from pathlib import Path
+args=sys.argv[1:]
+if '--version' in args: print('1.0.46 fixture')
+elif '--help' in args: print('--model --cwd --permission-mode --sandbox --output-format --disallowed-tools --no-plan --allow --prompt-file --reasoning-effort')
+elif args==['models']: print('You are logged in with grok.com.\\n\\nAvailable models:\\n  * grok-4.7 (default)')
+elif args==['inspect','--json']: print(Path('inspect.json').read_text())
+else:
+ home=Path(os.environ['GROK_HOME'])
+ config=(home/'config.toml').read_text()
+ assert 'web_fetch = true' in config, config
+ assert '[subagents]\\nenabled = true' in config, config
+ assert os.environ['GROK_SUBAGENTS']=='1'
+ assert os.environ['GROK_WEB_FETCH']=='1'
+ assert os.environ['GROK_WRITE_FILE']=='0'
+ assert os.environ['GROK_MEMORY']=='1'
+ assert os.environ['GROK_CURSOR_HOOKS_ENABLED']=='0'
+ assert 'OPENAI_API_KEY' not in os.environ
+ assert os.environ['XAI_API_KEY']=='provider'
+ assert '--disable-web-search' not in args
+ assert '--no-subagents' not in args
+ assert '--tools' not in args
+ assert '--yolo' not in args and '--always-approve' not in args and 'bypassPermissions' not in args
+ assert args[args.index('--permission-mode')+1]=='dontAsk'
+ assert args[args.index('--sandbox')+1]=='off'
+ assert '*' in args
+ brief=Path(args[args.index('--prompt-file')+1]).read_text()
+ assert 'Authorized native child agents are permitted' in brief
+ assert 'launch subagents' not in brief
+ assert 'trusted terminal can exceed user-authorized instructions' in brief
+ for event in json.loads(Path('events.json').read_text()): print(json.dumps(event))
+''')
+        self.binary.chmod(0o700)
+        oauth = self.root / 'oauth'; oauth.mkdir(); (oauth / 'auth.json').write_text('{}')
+        request = dict(provider='grok', dialect=dict(gn.TASK_DIALECT), model='grok-4.7', effort='medium', mode='read-only',
+                       project=str(self.root), cwd=str(self.root), brief='read the canonical docs', executable=str(self.binary),
+                       capability_scope=gn.capability_scope('read-only'),
+                       host_boundary={'host': 'codex-managed-exec', 'writable_roots': [str(self.root)], 'read_only_probe': '/proc'})
+        with patch.dict(os.environ, {'GROK_HOME': str(oauth), 'XAI_API_KEY': 'provider', 'OPENAI_API_KEY': 'other', 'HTTPS_PROXY': 'proxy'}), patch.object(gn, 'probe_boundary', return_value={'kind': 'outside-write-denied', 'scope': 'fixture only'}):
+            receipt = r.run(request)
+        detail = receipt.get('error', '')
+        stderr = receipt.get('artifacts', {}).get('provider-stderr.txt')
+        if stderr and Path(stderr).exists(): detail += '\n' + Path(stderr).read_text()
+        self.assertEqual(receipt['status'], 'complete', detail)
+        self.assertEqual(receipt['confinement'], 'managed-host')
+        self.assertEqual(receipt['metrics']['usage']['server_tool_use']['web_search_requests'], 2)
+        self.assertEqual(receipt['metrics']['nativeTools'], sorted(tools))
+        self.assertEqual(receipt['capabilityAvailability']['child_agents']['status'], 'observed-in-init')
+        self.assertEqual(receipt['capabilityAvailability']['file_edit']['status'], 'unverified')
+        self.assertTrue(all(item['status'] in ('observed-in-init', 'unverified') for item in receipt['capabilityAvailability'].values() if isinstance(item, dict)))
+        self.assertIn('artifact verification separate', receipt['toolAccess'])
+        self.assertIn('host sandbox', receipt['terminalReach'])
+        self.assertIn('semantic enforcement of user-authorized scope', receipt['unsupportedCapabilities'])
+        self.assertIn('native Codex collaboration API', receipt['unsupportedCapabilities'])
+        self.assertNotIn('--tools', receipt['argv']); self.assertNotIn('--disable-web-search', receipt['argv'])
+        brief = (Path(receipt['job']) / 'brief.txt').read_text()
+        self.assertTrue(brief.startswith(gn.TASK_HEADER))
+        self.assertNotIn('launch subagents', brief)
 
 if __name__ == '__main__': unittest.main()

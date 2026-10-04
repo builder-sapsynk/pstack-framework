@@ -1,5 +1,7 @@
 import importlib.util
 import fcntl
+import copy
+import hashlib
 import json
 import os
 import sys
@@ -35,7 +37,7 @@ if '--version' in args: print('fixture 1')
 elif '--help' in args: print('--model --permission-mode --output-format --setting-sources --strict-mcp-config --no-session-persistence --disable-slash-commands --tools --restricted --disallowedTools --effort')
 elif args[:2]==['auth','status']: print(json.dumps({'loggedIn':True}))
 else:
- brief=sys.stdin.read()
+ brief=sys.stdin.read().split('\\n\\n', 1)[-1]
  if brief=='sleep': time.sleep(5)
  if brief=='nonzero':
   print('private failure output'); print('private stderr', file=sys.stderr); sys.exit(2)
@@ -181,6 +183,203 @@ else:
             os.environ.clear(); os.environ.update(old)
     def test_stale_identity(self): self.assertFalse(r.alive(os.getpid(), 'not-process-start'))
     def test_grok_requires_dialect(self):
-        self.assertEqual(r.run(dict(self.request, provider='grok'))['status'], 'failed')
+        with self.assertRaisesRegex(ValueError, 'managed-host requires'):
+            r.run(dict(self.request, provider='grok'))
+        self.assertEqual(r.run(dict(self.request, provider='grok', dialect={}))['status'], 'failed')
+
+
+def grok_events(model='grok-4.7', cwd='/fixture'):
+    return [
+        {'type': 'system', 'subtype': 'init', 'model': model, 'cwd': cwd, 'permissionMode': 'dontAsk', 'tools': [], 'mcp_servers': [], 'skills': ['code-review'], 'session_id': 'fixture-session'},
+        {'type': 'assistant', 'message': {'role': 'assistant', 'model': model, 'content': [{'type': 'thinking', 'thinking': 'private reasoning', 'signature': 'fixture'}, {'type': 'text', 'text': 'answer'}], 'stop_reason': 'end_turn'}, 'session_id': 'fixture-session'},
+        {'type': 'result', 'subtype': 'success', 'is_error': False, 'stop_reason': 'end_turn', 'result': 'answer', 'session_id': 'fixture-session', 'usage': {'input_tokens': 3, 'server_tool_use': {'web_search_requests': 0}}, 'modelUsage': {'grok-4.7-build': {'costUSD': .001, 'webSearchRequests': 0}}},
+    ]
+
+
+class GrokNativeTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.binary = self.root / 'grok'
+        self.inspect = {'hooks': [], 'mcpServers': [], 'projectInstructions': [], 'plugins': [], 'skills': [], 'agents': [{'source': {'type': 'builtin'}, 'name': 'explore'}]}
+        (self.root / 'inspect.json').write_text(json.dumps(self.inspect))
+        self.binary.write_text('''#!/usr/bin/env python3
+import sys,json,os,time,subprocess
+from pathlib import Path
+args=sys.argv[1:]
+if '--version' in args: print('1.0.46 fixture')
+elif '--help' in args: print('--model --cwd --permission-mode --sandbox --output-format --tools --disallowed-tools --no-subagents --disable-web-search --prompt-file --reasoning-effort')
+elif args==['models']: print('You are logged in with grok.com.\\n\\nAvailable models:\\n  * grok-4.7 (default)\\n  - grok-4.7-build-fast')
+elif args==['inspect','--json']: print(Path('inspect.json').read_text())
+else:
+ assert sys.stdin.read()==''
+ assert args[args.index('--tools')+1]=='read_file'
+ assert args[args.index('--disallowed-tools')+1]=='read_file,search_tool,use_tool'
+ assert args[args.index('--sandbox')+1]=='off'
+ for key in ('GROK_MEMORY','GROK_SUBAGENTS','GROK_TOOL_SEARCH','GROK_WRITE_FILE','GROK_CURSOR_HOOKS_ENABLED','GROK_CLAUDE_SKILLS_ENABLED'): assert os.environ[key]=='0'
+ assert os.environ['GROK_DISABLE_AUTOUPDATER']=='1'
+ prompt=Path(args[args.index('--prompt-file')+1])
+ assert prompt.stat().st_mode & 0o777 == 0o600
+ brief=prompt.read_text()
+ if brief.endswith('sleep'):
+  child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)'])
+  Path('descendant.pid').write_text(str(child.pid))
+  time.sleep(5)
+ events=json.loads(Path('events.json').read_text())
+ for event in events: print(json.dumps(event))
+''')
+        self.binary.chmod(0o700)
+        (self.root / 'events.json').write_text(json.dumps(grok_events(cwd=str(self.root))))
+        self.request = dict(provider='grok', dialect=dict(r.GROK_DIALECT), model='grok-4.7', effort='medium', mode='read-only', project=str(self.root), cwd=str(self.root), brief='hello', executable=str(self.binary))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def parse(self, events):
+        return r.parse_output('grok', '\n'.join(map(json.dumps, events)), 'grok-4.7', r.GROK_DIALECT, '/fixture')
+
+    def test_native_schema_and_billing_label(self):
+        response, model, metrics = self.parse(grok_events())
+        self.assertEqual((response, model), ('answer', 'grok-4.7'))
+        self.assertIn('grok-4.7-build', metrics['modelUsage'])
+        self.assertNotIn('private reasoning', response)
+        self.assertEqual(metrics['observedSkills'], ['code-review'])
+
+    def test_session_models_tools_and_terminal_fail_closed(self):
+        mutations = [
+            (0, 'tools', ['read_file']), (0, 'tools', None), (0, 'mcp_servers', ['unexpected']),
+            (0, 'model', 'grok-4.6'), (0, 'session_id', ''), (0, 'permissionMode', 'bypassPermissions'), (0, 'cwd', '/other'),
+            (1, 'session_id', 'different'), (2, 'session_id', None), (2, 'subtype', 'error'),
+            (2, 'is_error', True), (2, 'is_error', None), (2, 'result', ''), (2, 'result', 3),
+            (2, 'stop_reason', 'max_tokens'), (2, 'modelUsage', []), (2, 'usage', []),
+        ]
+        for index, key, value in mutations:
+            with self.subTest(index=index, key=key, value=value):
+                events = grok_events(); events[index][key] = value
+                with self.assertRaises(ValueError): self.parse(events)
+        for key, value in [('model', 'grok-4.6'), ('stop_reason', 'tool_use'), ('content', [{'type': 'tool_use', 'name': 'read_file'}]), ('content', None)]:
+            with self.subTest(key=key):
+                events = grok_events(); events[1]['message'][key] = value
+                with self.assertRaises(ValueError): self.parse(events)
+        events = grok_events(); events[2]['usage']['server_tool_use']['web_search_requests'] = 1
+        with self.assertRaises(ValueError): self.parse(events)
+        events = grok_events(); events[2]['modelUsage']['grok-4.7-build']['webSearchRequests'] = 1
+        with self.assertRaises(ValueError): self.parse(events)
+        original = grok_events()
+        for events in (original[1:], original[:2], [original[0], original[2]], original + [original[2]], [original[0], original[0]] + original[1:], original + [{'type': 'error'}], [original[0], {'type': 'user', 'session_id': 'fixture-session'}] + original[1:]):
+            with self.assertRaises(ValueError): self.parse(events)
+
+    def test_private_prompt_transport_and_receipt(self):
+        prompt = self.root / 'source.txt'; prompt.write_text('private payload')
+        receipt = r.run(dict(self.request, prompt_file=str(prompt), brief='ignored'))
+        self.assertEqual(receipt['status'], 'complete')
+        self.assertEqual(receipt['transport'], 'subprocess-prompt-file')
+        self.assertEqual(receipt['confinement'], 'response-only')
+        self.assertEqual(receipt['filesystemIsolation'], 'unavailable')
+        self.assertTrue(receipt['authVerified']); self.assertTrue(receipt['configurationPreflight'])
+        brief = (Path(receipt['job']) / 'brief.txt').read_text()
+        self.assertEqual(brief, r.WORKER_HEADER + 'private payload')
+        self.assertEqual(receipt['promptDigest'], hashlib.sha256(brief.encode()).hexdigest())
+        self.assertNotIn('private payload', ' '.join(receipt['argv']))
+        self.assertEqual((Path(receipt['job']) / 'response.txt').read_text(), 'answer\n')
+        for artifact in receipt['artifacts'].values():
+            if Path(artifact).exists(): self.assertEqual(Path(artifact).stat().st_mode & 0o777, 0o600)
+
+    def test_named_profile_refuses_writes_and_extra_flags(self):
+        for dialect in (dict(r.GROK_DIALECT, run_argv=['--yolo']), dict(r.GROK_DIALECT, confinement='tool-permissions'), dict(r.GROK_DIALECT, id='future')):
+            with self.assertRaises(ValueError): r.profile(dict(self.request, dialect=dialect))
+        with self.assertRaisesRegex(ValueError, 'isolated writing'): r.profile(dict(self.request, mode='isolated-write'))
+        with self.assertRaises(ValueError): r.profile(dict(self.request, allowed_commands=['python tests.py']))
+        project = self.root / 'project'; project.mkdir()
+        scratch = self.root / 'scratch'; scratch.mkdir()
+        receipt = r.run(dict(self.request, mode='isolated-write', project=str(project), cwd=str(scratch), isolated_scratch=True))
+        self.assertEqual(receipt['status'], 'failed'); self.assertIn('isolated writing', receipt['error'])
+        self.assertEqual(list(scratch.iterdir()), [])
+        for flag in ('--always-approve', '--yolo', '--permission-mode=bypassPermissions', 'bypassPermissions'):
+            legacy = {'auth_argv': ['auth', 'status'], 'run_argv': ['--model', '{model}', '--mode', '{mode}', flag], 'required_flags': ['--model']}
+            with self.assertRaises(ValueError): r.profile(dict(self.request, dialect=legacy, effort=''))
+
+    def test_discovery_rejection_prevents_dispatch(self):
+        for key in ('hooks', 'mcpServers', 'projectInstructions', 'plugins', 'skills', 'agents'):
+            discovery = copy.deepcopy(self.inspect); discovery[key] = [{'source': {'type': 'project'}}]
+            (self.root / 'inspect.json').write_text(json.dumps(discovery))
+            receipt = r.run(self.request)
+            self.assertEqual(receipt['status'], 'failed'); self.assertIn(key, receipt['error'])
+            self.assertNotIn('providerEvents', receipt['artifacts'])
+
+    def test_actual_bundled_skill_shape_and_path_boundary(self):
+        grok_home = self.root / 'grok-home'
+        discovery = copy.deepcopy(self.inspect)
+        discovery['skills'] = [{'name': 'build-with-ai', 'source': {'type': 'bundled', 'path': str(grok_home / 'bundled/skills/build-with-ai/SKILL.md')}, 'userInvocable': True}]
+        self.assertEqual(r.inspect_grok(json.dumps(discovery), str(grok_home))['skills'][0]['name'], 'build-with-ai')
+        (self.root / 'inspect.json').write_text(json.dumps(discovery))
+        with patch.dict(os.environ, {'GROK_HOME': str(grok_home)}):
+            self.assertEqual(r.run(self.request)['status'], 'complete')
+        for path in (str(grok_home / 'skills/external/SKILL.md'), str(grok_home / 'bundled/skills/../../../outside/SKILL.md'), 'relative/SKILL.md'):
+            discovery['skills'][0]['source']['path'] = path
+            with self.assertRaises(ValueError): r.inspect_grok(json.dumps(discovery), str(grok_home))
+        inside = grok_home / 'bundled/skills'; inside.mkdir(parents=True)
+        (inside / 'escape').symlink_to(self.root, target_is_directory=True)
+        discovery['skills'][0]['source']['path'] = str(inside / 'escape/SKILL.md')
+        with self.assertRaises(ValueError): r.inspect_grok(json.dumps(discovery), str(grok_home))
+
+    def test_catalog_exact_match_and_login_proof(self):
+        original = self.binary.read_text()
+        for replacement in ('You are logged out.', 'You are logged in with grok.com.extra'):
+            self.binary.write_text(original.replace('You are logged in with grok.com.', replacement))
+            receipt = r.run(self.request)
+            self.assertEqual(receipt['status'], 'failed'); self.assertNotIn('argv', receipt)
+        self.binary.write_text(original)
+        self.assertEqual(r.run(dict(self.request, model='grok-4'))['status'], 'failed')
+        self.assertEqual(r.grok_catalog('You are logged in with grok.com.\nAvailable models:\n * grok-4.7 (default)\n - grok-4.7-build-fast'), ['grok-4.7', 'grok-4.7-build-fast'])
+
+    def test_doctor_named_preflights_are_not_live_proof(self):
+        config = self.root / '.pstack'; config.mkdir()
+        (config / 'config.json').write_text(json.dumps({'providers': {'grok': {'executable': str(self.binary), 'dialect': r.GROK_DIALECT}}}))
+        item = r.doctor(str(self.root))['providers']['grok']
+        for key in ('versionProbe', 'helpPreflight', 'authPreflight', 'catalogPreflight', 'configurationPreflight'): self.assertTrue(item[key])
+        self.assertEqual(item['authenticatedExecution'], 'not verified')
+        self.assertIn('response-only live execution probe', item['status'])
+        self.assertEqual(item['toolAccess'], 'must be verified in live init')
+
+    def test_native_timeout_and_failed_private_evidence(self):
+        self.assertEqual(r.run(dict(self.request, brief='sleep', timeout=.5))['status'], 'timed-out')
+        events = grok_events(cwd=str(self.root)); events[0]['tools'] = ['read_file']
+        (self.root / 'events.json').write_text(json.dumps(events))
+        receipt = r.run(self.request)
+        self.assertEqual(receipt['status'], 'failed')
+        self.assertFalse(receipt.get('authVerified', False))
+        self.assertEqual(json.loads((Path(receipt['job']) / 'receipt.json').read_text())['status'], 'failed')
+        self.assertTrue(Path(receipt['artifacts']['providerEvents']).exists())
+
+    def test_native_cancel_preserves_terminal_receipt_and_stops_descendant(self):
+        request_file = self.root / 'request.json'; request_file.write_text(json.dumps(dict(self.request, brief='sleep')))
+        runner = subprocess.Popen([sys.executable, r.__file__, 'run', '--request', str(request_file)], stdout=subprocess.PIPE, text=True)
+        try:
+            end = time.monotonic() + 5
+            while time.monotonic() < end and not (self.root / 'descendant.pid').exists(): time.sleep(.02)
+            self.assertTrue((self.root / 'descendant.pid').exists())
+            receipt_file = next(self.root.glob('.pstack/runs/*/receipt.json'))
+            receipt = json.loads(receipt_file.read_text())
+            cancel = subprocess.run([sys.executable, r.__file__, 'cancel', '--project', str(self.root), '--job', receipt['job_id']], capture_output=True, text=True)
+            self.assertEqual(cancel.returncode, 0)
+            output, _ = runner.communicate(timeout=5)
+            self.assertEqual(json.loads(output.split('\n', 1)[1])['status'], 'cancelled')
+            self.assertEqual(r.status(receipt['job'])['status'], 'cancelled')
+            descendant = int((self.root / 'descendant.pid').read_text())
+            stat = Path(f'/proc/{descendant}/stat')
+            self.assertTrue(not stat.exists() or stat.read_text().rsplit(')', 1)[1].split()[0] == 'Z')
+        finally:
+            if runner.poll() is None: runner.kill(); runner.wait()
+
+    def test_grok_environment_controls_preserve_transport(self):
+        with patch.dict(os.environ, {'GROK_HOME': '/private/home', 'XAI_API_KEY': 'provider', 'OPENAI_API_KEY': 'other', 'HTTPS_PROXY': 'proxy', 'SSL_CERT_FILE': '/cert', 'GROK_MEMORY': '1', 'GROK_CURSOR_HOOKS_ENABLED': '1'}, clear=True):
+            env = r.environment('grok')
+        self.assertEqual(env['GROK_HOME'], '/private/home'); self.assertEqual(env['XAI_API_KEY'], 'provider')
+        self.assertEqual(env['HTTPS_PROXY'], 'proxy'); self.assertEqual(env['SSL_CERT_FILE'], '/cert')
+        self.assertNotIn('OPENAI_API_KEY', env)
+        for vendor in ('CURSOR', 'CLAUDE'):
+            for surface in ('SKILLS', 'RULES', 'AGENTS', 'MCPS', 'HOOKS', 'SESSIONS'):
+                self.assertEqual(env[f'GROK_{vendor}_{surface}_ENABLED'], '0')
 
 if __name__ == '__main__': unittest.main()

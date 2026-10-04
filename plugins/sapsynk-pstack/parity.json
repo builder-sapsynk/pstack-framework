@@ -1037,7 +1037,7 @@
         "host adapter preamble"
       ],
       "original_body_sha256": "ca52935c93ed20b5687a37fea435773cdbfda9678178bddb89438ee424cb4d7c",
-      "package_sha256": "0d10a72a75ac5065b2f336cb086677794d56617a76acfaf69d465eabc8e169f4",
+      "package_sha256": "dcea3c418b77ec271930de511b6c633b882dd23d91a667fe627afd329f5f64e1",
       "path": "skills/setup-pstack/SKILL.md",
       "source_sha256": "125dd0c8f588782cfb271efae8f97a0719e43e79f56b3495c095f460bcee6389",
       "status": "adapted"
@@ -1221,7 +1221,7 @@
       "status": "retained"
     }
   ],
-  "framework_source_digest": "f7f4c91659e93a8ca778d7f5393b748d1a00781e639df8355578ec6f232136e5",
+  "framework_source_digest": "2db40fdbcc0435f99ca45e33aada7cf064fc463793fe1c32eb1c0e6dcfcef730",
   "original_files": 160,
   "schema_version": 1,
   "upstream_commit": "23e4138daa01c42d4969f7a5465f82704e64f798"

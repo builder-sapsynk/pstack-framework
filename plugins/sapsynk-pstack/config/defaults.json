@@ -4,28 +4,28 @@
   "default_host": "codex",
   "roles": {
     "feature, refactoring": {
-      "provider": "codex",
-      "transport": "native",
-      "model": "gpt-6.1-sol",
-      "effort": "high"
+      "provider": "grok",
+      "transport": "grok-build",
+      "model": "grok-4.7",
+      "effort": "medium"
     },
     "bug-fix": {
-      "provider": "codex",
-      "transport": "native",
-      "model": "gpt-6.1-sol",
-      "effort": "high"
+      "provider": "grok",
+      "transport": "grok-build",
+      "model": "grok-4.7",
+      "effort": "medium"
     },
     "perf-issue": {
-      "provider": "codex",
-      "transport": "native",
-      "model": "gpt-6.1-sol",
+      "provider": "grok",
+      "transport": "grok-build",
+      "model": "grok-4.7",
       "effort": "high"
     },
     "hillclimb": {
-      "provider": "codex",
-      "transport": "native",
-      "model": "gpt-6.1-sol",
-      "effort": "high"
+      "provider": "grok",
+      "transport": "grok-build",
+      "model": "grok-4.7",
+      "effort": "medium"
     },
     "judgment and prose": {
       "provider": "codex",
@@ -40,10 +40,10 @@
       "effort": "medium"
     },
     "how explorer": {
-      "provider": "codex",
-      "transport": "native",
-      "model": "gpt-6.1-sol",
-      "effort": "high"
+      "provider": "grok",
+      "transport": "grok-build",
+      "model": "grok-4.7",
+      "effort": "low"
     },
     "how explainer": {
       "provider": "codex",
@@ -58,10 +58,10 @@
       "alias": "inherit-parent"
     },
     "reflect tooling": {
-      "provider": "codex",
-      "transport": "native",
-      "model": "gpt-6.1-sol",
-      "effort": "high"
+      "provider": "grok",
+      "transport": "grok-build",
+      "model": "grok-4.7",
+      "effort": "medium"
     },
     "reflect judgment, divergent, synthesizer": {
       "provider": "codex",
@@ -71,10 +71,10 @@
     },
     "arena runners": [
       {
-        "provider": "codex",
-        "transport": "native",
-        "model": "gpt-6.1-sol",
-        "effort": "high"
+        "provider": "grok",
+        "transport": "grok-build",
+        "model": "grok-4.7",
+        "effort": "medium"
       },
       {
         "provider": "codex",
@@ -92,17 +92,17 @@
       }
     ],
     "swarm workers": {
-      "provider": "codex",
-      "transport": "native",
-      "model": "gpt-6.1-sol",
-      "effort": "high"
+      "provider": "grok",
+      "transport": "grok-build",
+      "model": "grok-4.7",
+      "effort": "medium"
     },
     "architect runners": [
       {
-        "provider": "codex",
-        "transport": "native",
-        "model": "gpt-6.1-sol",
-        "effort": "high"
+        "provider": "grok",
+        "transport": "grok-build",
+        "model": "grok-4.7",
+        "effort": "medium"
       },
       {
         "provider": "codex",
@@ -113,10 +113,10 @@
     ],
     "interrogate reviewers": [
       {
-        "provider": "codex",
-        "transport": "native",
-        "model": "gpt-6.1-sol",
-        "effort": "high"
+        "provider": "grok",
+        "transport": "grok-build",
+        "model": "grok-4.7",
+        "effort": "medium"
       },
       {
         "provider": "codex",
@@ -133,7 +133,11 @@
     },
     "grok": {
       "executable": "grok",
-      "transport": "grok-build"
+      "transport": "grok-build",
+      "dialect": {
+        "id": "grok-build-native-1",
+        "confinement": "managed-host"
+      }
     },
     "codex": {
       "executable": "codex",
@@ -149,6 +153,338 @@
   },
   "execution_policy": {
     "token_conservative": true,
-    "subagents": "minimum sufficient for the task while honoring required workflow steps"
+    "subagents": "minimum sufficient for the task while honoring required workflow steps",
+    "metrics": "two-line observed lifecycle/usage footer; unknown host measurements remain unknown",
+    "context_packaging": "fresh scoped briefs and resource pointers; retain required independent panels",
+    "discovery": "refresh current host/provider availability before task dispatch; stored setup proof is historical",
+    "quota_handling": "temporary quota failures do not disable models or alter bindings; retry after reset or explicitly select another approved lane"
+  },
+  "budget": "medium \u2014 high reasoning",
+  "routing_preferences": {
+    "schema_version": 1,
+    "plan_digest": "273334cce22b3ff526ac01828ff8e2b4de91b4d40d78cc6bcd011695b5499c1a",
+    "budget_mode": "layered-role-overrides",
+    "selection_policy": {
+      "astra": {
+        "model": "gpt-6-astra",
+        "alternative_layer": "native_file_lane",
+        "bounded_routine_judgment_prose": "prefer-sol-high",
+        "difficult_or_ambiguous_tasks": "astra-when-task-evaluation-warrants-cost",
+        "applies_to": "every-astra-slot-including-panels-and-explainer",
+        "decision_timing": "explicit-task-choice-before-dispatch",
+        "record": [
+          "task_evaluation",
+          "selected_binding",
+          "selection_reason"
+        ],
+        "preserve": [
+          "panel_entry_count",
+          "candidate_independence",
+          "judging_order",
+          "capability_requirements"
+        ],
+        "provider_failure": "stop-no-silent-fallback"
+      },
+      "effort_escalation": {
+        "optional_efforts": [
+          "high",
+          "xhigh"
+        ],
+        "requires": [
+          "task_evaluation_justifies_effort",
+          "discovered_model_effort",
+          "role_capabilities",
+          "explicit_selection"
+        ],
+        "default_change": false,
+        "provider_failure": "stop-no-silent-fallback"
+      }
+    },
+    "roles": {
+      "feature, refactoring": {
+        "layer": "routine",
+        "requested": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "medium"
+        },
+        "effective": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "medium"
+        }
+      },
+      "bug-fix": {
+        "layer": "routine",
+        "requested": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "medium"
+        },
+        "effective": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "medium"
+        }
+      },
+      "perf-issue": {
+        "layer": "complex",
+        "requested": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "high"
+        },
+        "effective": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "high"
+        }
+      },
+      "hillclimb": {
+        "layer": "routine",
+        "requested": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "medium"
+        },
+        "effective": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "medium"
+        }
+      },
+      "judgment and prose": {
+        "layer": "judgment",
+        "requested": {
+          "provider": "codex",
+          "transport": "native",
+          "model": "gpt-6-astra",
+          "effort": "medium"
+        },
+        "effective": {
+          "provider": "codex",
+          "transport": "native",
+          "model": "gpt-6-astra",
+          "effort": "medium"
+        }
+      },
+      "hardest tasks": {
+        "layer": "judgment",
+        "requested": {
+          "provider": "codex",
+          "transport": "native",
+          "model": "gpt-6-astra",
+          "effort": "medium"
+        },
+        "effective": {
+          "provider": "codex",
+          "transport": "native",
+          "model": "gpt-6-astra",
+          "effort": "medium"
+        }
+      },
+      "how explorer": {
+        "layer": "exploration",
+        "requested": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "low"
+        },
+        "effective": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "low"
+        }
+      },
+      "how explainer": {
+        "layer": "explanation",
+        "requested": {
+          "provider": "codex",
+          "transport": "native",
+          "model": "gpt-6-astra",
+          "effort": "low"
+        },
+        "effective": {
+          "provider": "codex",
+          "transport": "native",
+          "model": "gpt-6-astra",
+          "effort": "low"
+        }
+      },
+      "why investigators": {
+        "alias": "inherit-parent"
+      },
+      "why synthesizer": {
+        "alias": "inherit-parent"
+      },
+      "reflect tooling": {
+        "layer": "routine",
+        "requested": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "medium"
+        },
+        "effective": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "medium"
+        }
+      },
+      "reflect judgment, divergent, synthesizer": {
+        "layer": "judgment",
+        "requested": {
+          "provider": "codex",
+          "transport": "native",
+          "model": "gpt-6-astra",
+          "effort": "medium"
+        },
+        "effective": {
+          "provider": "codex",
+          "transport": "native",
+          "model": "gpt-6-astra",
+          "effort": "medium"
+        }
+      },
+      "arena runners": [
+        {
+          "layer": "routine",
+          "requested": {
+            "provider": "grok",
+            "transport": "grok-build",
+            "model": "grok-4.7",
+            "effort": "medium"
+          },
+          "effective": {
+            "provider": "grok",
+            "transport": "grok-build",
+            "model": "grok-4.7",
+            "effort": "medium"
+          }
+        },
+        {
+          "layer": "judgment",
+          "requested": {
+            "provider": "codex",
+            "transport": "native",
+            "model": "gpt-6-astra",
+            "effort": "medium"
+          },
+          "effective": {
+            "provider": "codex",
+            "transport": "native",
+            "model": "gpt-6-astra",
+            "effort": "medium"
+          }
+        }
+      ],
+      "arena cross-judge pool": [
+        {
+          "layer": "judgment",
+          "requested": {
+            "provider": "codex",
+            "transport": "native",
+            "model": "gpt-6-astra",
+            "effort": "medium"
+          },
+          "effective": {
+            "provider": "codex",
+            "transport": "native",
+            "model": "gpt-6-astra",
+            "effort": "medium"
+          }
+        }
+      ],
+      "swarm workers": {
+        "layer": "routine",
+        "requested": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "medium"
+        },
+        "effective": {
+          "provider": "grok",
+          "transport": "grok-build",
+          "model": "grok-4.7",
+          "effort": "medium"
+        }
+      },
+      "architect runners": [
+        {
+          "layer": "routine",
+          "requested": {
+            "provider": "grok",
+            "transport": "grok-build",
+            "model": "grok-4.7",
+            "effort": "medium"
+          },
+          "effective": {
+            "provider": "grok",
+            "transport": "grok-build",
+            "model": "grok-4.7",
+            "effort": "medium"
+          }
+        },
+        {
+          "layer": "judgment",
+          "requested": {
+            "provider": "codex",
+            "transport": "native",
+            "model": "gpt-6-astra",
+            "effort": "medium"
+          },
+          "effective": {
+            "provider": "codex",
+            "transport": "native",
+            "model": "gpt-6-astra",
+            "effort": "medium"
+          }
+        }
+      ],
+      "interrogate reviewers": [
+        {
+          "layer": "routine",
+          "requested": {
+            "provider": "grok",
+            "transport": "grok-build",
+            "model": "grok-4.7",
+            "effort": "medium"
+          },
+          "effective": {
+            "provider": "grok",
+            "transport": "grok-build",
+            "model": "grok-4.7",
+            "effort": "medium"
+          }
+        },
+        {
+          "layer": "judgment",
+          "requested": {
+            "provider": "codex",
+            "transport": "native",
+            "model": "gpt-6-astra",
+            "effort": "medium"
+          },
+          "effective": {
+            "provider": "codex",
+            "transport": "native",
+            "model": "gpt-6-astra",
+            "effort": "medium"
+          }
+        }
+      ]
+    }
   }
 }

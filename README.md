@@ -1,6 +1,6 @@
 # Sapsynk pstack
 
-Portable pstack engineering workflows, with Codex hosting today and separate Claude Code and Grok Build process adapters. The upstream Cursor pstack 0.15.6 source is retained unchanged at commit `23e4138daa01c42d4969f7a5465f82704e64f798`: 160 files, 49 skills and 23 playbooks. Five additional skills supply the framework entry point, provider execution and control companions.
+Portable pstack engineering workflows, with Codex hosting today and separate Claude Code and Grok Build process adapters. The upstream Cursor pstack 0.15.6 source is retained unchanged at commit `23e4138daa01c42d4969f7a5465f82704e64f798`: 160 files, 49 skills and 23 playbooks. Additional skills supply portable setup, provider execution, verification and control companions.
 
 ## Build and verify
 
@@ -10,7 +10,7 @@ python tools/validate.py
 python -m unittest discover -s tests -q
 ```
 
-The deterministic archive is `dist/sapsynk-pstack-0.1.3.zip`. The package includes portable Agent Plugins 1.0 metadata and native Codex and Claude compatibility manifests. `framework.json` records the exact semantic source digest; `parity.json` records original-file preservation and skill-body hashes.
+The deterministic archive is `dist/sapsynk-pstack-0.1.4.zip`. The package includes portable Agent Plugins 1.0 metadata and native Codex and Claude compatibility manifests. `framework.json` records the exact semantic source digest; `parity.json` records original-file preservation and skill-body hashes.
 
 ## Install in Codex
 
@@ -44,3 +44,13 @@ Read [docs/github-auth.md](docs/github-auth.md) and run `python tools/github_aut
 ## Provenance
 
 Original source is under `upstream/pstack`; changes belong in adapters, runtime, tooling or extra skills. Rebuild generated files instead of editing them. The MIT licenses and NOTICE preserve upstream and companion attribution. Use `Boobesh P <builder@sapsynk.com>` for commits.
+
+## Model and effort validation
+
+Use the packaged `verify-model-routing` skill before changing `setup-pstack` roles. It separates availability smoke checks from repeated model/effort comparisons and preserves failures in the evidence. See [model selection](adapters/model-selection.md). Grok Build supports a bounded response-only worker where native filesystem sandboxing is unavailable. The coordinator reviews and applies returned artifacts; this mode does not provide direct file tools or isolated writing.
+
+The [setup adapter](adapters/setup-pstack.md) keeps the seven original setup steps and materializes a complete, reviewable role plan. Grok low/medium/high are the preferred exploration/routine/performance layers. Every Astra role considers Sol 6.1/high according to task requirements and cost. High and xhigh remain optional evaluated escalations. Capability gates are visible before configuration changes; failed providers never trigger silent substitutions.
+
+Use `monitor-agent-workflow` and [workflow metrics](adapters/workflow-metrics.md) for deterministic agent counts, timing, token volumes and context observations. Missing host measurements stay unknown. Scoped briefs reduce duplicated context while independent panels retain their required members.
+
+Direct native Grok tools use the explicitly qualified [managed-host adapter](adapters/grok-native.md). The runtime preserves per-job receipts, status, cancellation and resumable sessions. Use `verify-agent-parity` to distinguish functional tools from host/API/isolation limits. An MCP or command bridge is unnecessary when the managed host boundary and native tools pass the actual task checks.

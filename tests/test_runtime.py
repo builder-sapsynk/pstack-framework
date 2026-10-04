@@ -183,7 +183,9 @@ else:
             os.environ.clear(); os.environ.update(old)
     def test_stale_identity(self): self.assertFalse(r.alive(os.getpid(), 'not-process-start'))
     def test_grok_requires_dialect(self):
-        self.assertEqual(r.run(dict(self.request, provider='grok'))['status'], 'failed')
+        with self.assertRaisesRegex(ValueError, 'managed-host requires'):
+            r.run(dict(self.request, provider='grok'))
+        self.assertEqual(r.run(dict(self.request, provider='grok', dialect={}))['status'], 'failed')
 
 
 def grok_events(model='grok-4.7', cwd='/fixture'):

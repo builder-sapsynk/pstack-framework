@@ -1,0 +1,233 @@
+{
+  "schema_version": 1,
+  "budget": "medium \u2014 high reasoning",
+  "layers": {
+    "exploration": {
+      "provider": "grok",
+      "transport": "grok-build",
+      "model": "grok-4.7",
+      "effort": "low"
+    },
+    "routine": {
+      "provider": "grok",
+      "transport": "grok-build",
+      "model": "grok-4.7",
+      "effort": "medium"
+    },
+    "complex": {
+      "provider": "grok",
+      "transport": "grok-build",
+      "model": "grok-4.7",
+      "effort": "high"
+    },
+    "judgment": {
+      "provider": "codex",
+      "transport": "native",
+      "model": "gpt-6-astra",
+      "effort": "medium"
+    },
+    "explanation": {
+      "provider": "codex",
+      "transport": "native",
+      "model": "gpt-6-astra",
+      "effort": "low"
+    },
+    "native_file_lane": {
+      "provider": "codex",
+      "transport": "native",
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    }
+  },
+  "roles": {
+    "feature, refactoring": {
+      "layer": "routine",
+      "incumbent_layer": "native_file_lane",
+      "requires": [
+        "read_files",
+        "edit_files",
+        "verify"
+      ]
+    },
+    "bug-fix": {
+      "layer": "routine",
+      "incumbent_layer": "native_file_lane",
+      "requires": [
+        "read_files",
+        "edit_files",
+        "verify"
+      ]
+    },
+    "perf-issue": {
+      "layer": "complex",
+      "incumbent_layer": "native_file_lane",
+      "requires": [
+        "read_files",
+        "edit_files",
+        "verify"
+      ]
+    },
+    "hillclimb": {
+      "layer": "routine",
+      "incumbent_layer": "native_file_lane",
+      "requires": [
+        "read_files",
+        "edit_files",
+        "verify"
+      ]
+    },
+    "judgment and prose": {
+      "layer": "judgment",
+      "requires": [
+        "respond"
+      ]
+    },
+    "hardest tasks": {
+      "layer": "judgment",
+      "requires": [
+        "read_files",
+        "edit_files",
+        "verify"
+      ]
+    },
+    "how explorer": {
+      "layer": "exploration",
+      "incumbent_layer": "native_file_lane",
+      "requires": [
+        "read_files"
+      ]
+    },
+    "how explainer": {
+      "layer": "explanation",
+      "requires": [
+        "respond"
+      ]
+    },
+    "why investigators": {
+      "alias": "inherit-parent"
+    },
+    "why synthesizer": {
+      "alias": "inherit-parent"
+    },
+    "reflect tooling": {
+      "layer": "routine",
+      "incumbent_layer": "native_file_lane",
+      "requires": [
+        "read_files",
+        "edit_files",
+        "verify"
+      ]
+    },
+    "reflect judgment, divergent, synthesizer": {
+      "layer": "judgment",
+      "requires": [
+        "respond"
+      ]
+    },
+    "arena runners": [
+      {
+        "layer": "routine",
+        "incumbent_layer": "native_file_lane",
+        "requires": [
+          "read_files",
+          "edit_files",
+          "verify"
+        ]
+      },
+      {
+        "layer": "judgment",
+        "requires": [
+          "read_files",
+          "edit_files",
+          "verify"
+        ]
+      }
+    ],
+    "arena cross-judge pool": [
+      {
+        "layer": "judgment",
+        "requires": [
+          "read_files",
+          "verify"
+        ]
+      }
+    ],
+    "swarm workers": {
+      "layer": "routine",
+      "incumbent_layer": "native_file_lane",
+      "requires": [
+        "read_files",
+        "edit_files",
+        "verify"
+      ]
+    },
+    "architect runners": [
+      {
+        "layer": "routine",
+        "incumbent_layer": "native_file_lane",
+        "requires": [
+          "read_files"
+        ]
+      },
+      {
+        "layer": "judgment",
+        "requires": [
+          "read_files"
+        ]
+      }
+    ],
+    "interrogate reviewers": [
+      {
+        "layer": "routine",
+        "incumbent_layer": "native_file_lane",
+        "requires": [
+          "read_files",
+          "verify"
+        ]
+      },
+      {
+        "layer": "judgment",
+        "requires": [
+          "read_files",
+          "verify"
+        ]
+      }
+    ]
+  },
+  "selection_policy": {
+    "astra": {
+      "model": "gpt-6-astra",
+      "alternative_layer": "native_file_lane",
+      "bounded_routine_judgment_prose": "prefer-sol-high",
+      "difficult_or_ambiguous_tasks": "astra-when-task-evaluation-warrants-cost",
+      "applies_to": "every-astra-slot-including-panels-and-explainer",
+      "decision_timing": "explicit-task-choice-before-dispatch",
+      "record": [
+        "task_evaluation",
+        "selected_binding",
+        "selection_reason"
+      ],
+      "preserve": [
+        "panel_entry_count",
+        "candidate_independence",
+        "judging_order",
+        "capability_requirements"
+      ],
+      "provider_failure": "stop-no-silent-fallback"
+    },
+    "effort_escalation": {
+      "optional_efforts": [
+        "high",
+        "xhigh"
+      ],
+      "requires": [
+        "task_evaluation_justifies_effort",
+        "discovered_model_effort",
+        "role_capabilities",
+        "explicit_selection"
+      ],
+      "default_change": false,
+      "provider_failure": "stop-no-silent-fallback"
+    }
+  }
+}

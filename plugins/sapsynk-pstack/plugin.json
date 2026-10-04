@@ -7,8 +7,10 @@
   "extensions": {
     "com.openai": {
       "interface": {
+        "capabilities": [],
         "category": "Developer Tools",
         "composerIcon": "./assets/logo.png",
+        "defaultPrompt": null,
         "developerName": "Sapsynk",
         "displayName": "Sapsynk pstack",
         "logo": "./assets/logo.png",

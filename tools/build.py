@@ -72,6 +72,11 @@ def adapted_skill(data, path):
                 'workflow. Select the matching host adapter when running elsewhere; preserve '
                 'the original requirements and report unavailable capabilities. Verify the pinned '
                 '[framework identity](' + prefix + '/framework.json) before relying on this installation.\n')
+    if slug == 'setup-pstack':
+        preamble += ('\n> Portable setup override: Read the [setup adapter](' + prefix +
+                     '/adapters/setup-pstack.md) before interpreting the original seven steps. '
+                     'Its discovered provider/transport/model/effort plan and explicit host '
+                     'confirmation govern portable configuration; retain every original step.\n')
     # The original body begins immediately after the closing frontmatter line.
     body = text[match.end():]
     output = '---\nname: ' + slug + '\ndescription:' + description.group(1).rstrip() + '\n---\n' + preamble + body
@@ -142,6 +147,7 @@ def build(root=ROOT):
         'interface': {'displayName': 'Sapsynk pstack', 'shortDescription': 'Portable engineering workflows',
             'longDescription': 'Pinned upstream pstack with portable host adapters and external agent tools.',
             'developerName': 'Sapsynk', 'category': 'Developer Tools',
+            'defaultPrompt': None, 'capabilities': [],
             'composerIcon': './assets/logo.png', 'logo': './assets/logo.png'}}
     portable = {k: v for k, v in manifest.items() if k not in ('skills', 'interface')}
     portable['$schema'] = 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'

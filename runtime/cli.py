@@ -25,13 +25,20 @@ GROK_DIALECT = {'id': 'grok-build-1', 'confinement': 'response-only'}
 WORKER_HEADER = ('You are the assigned external worker for this bounded request. Complete the brief below in your assigned role. Do not activate a framework router, reroute this task, launch subagents, or delegate to another provider. Respect the selected sandbox and report unsupported capabilities.\n\n')
 
 
-def environment(provider):
+def environment(provider, dialect=None, mode=None):
     # Keep proxy, certificate and host settings. Remove credential-bearing variables
     # belonging to other services; disk credentials remain accessible to the CLI.
     allowed = KEYS[provider]
     env = {k: v for k, v in os.environ.items() if k in allowed or not (any(s in k.upper() for s in ('TOKEN', 'SECRET', 'PASSWORD', 'API_KEY')) or k in {'GH_TOKEN', 'GITHUB_TOKEN'})}
     if provider == 'grok':
-        env.update({key: '0' for key in ('GROK_MEMORY', 'GROK_SUBAGENTS', 'GROK_TOOL_SEARCH', 'GROK_WRITE_FILE', 'GROK_WEB_FETCH', 'GROK_LSP_TOOLS')})
+        task = dialect == gn.TASK_DIALECT
+        disabled = [] if task else ['GROK_MEMORY', 'GROK_TOOL_SEARCH', 'GROK_LSP_TOOLS', 'GROK_SUBAGENTS', 'GROK_WRITE_FILE', 'GROK_WEB_FETCH']
+        env.update({key: '0' for key in disabled})
+        if task:
+            env.update({key: '1' for key in ('GROK_MEMORY', 'GROK_TOOL_SEARCH', 'GROK_LSP_TOOLS')})
+            env['GROK_SUBAGENTS'] = '1'
+            env['GROK_WEB_FETCH'] = '1'
+            env['GROK_WRITE_FILE'] = '1' if mode == 'isolated-write' else '0'
         env['GROK_DISABLE_AUTOUPDATER'] = '1'
         for vendor in ('CURSOR', 'CLAUDE'):
             for surface in ('SKILLS', 'RULES', 'AGENTS', 'MCPS', 'HOOKS', 'SESSIONS'):
@@ -115,6 +122,9 @@ def validate(raw):
     if raw['provider'] == 'grok' and raw.get('dialect') == gn.DIALECT:
         gn.validate_boundary(raw.get('host_boundary'), raw['cwd'])
         gn.argv(raw)
+    if raw['provider'] == 'grok' and raw.get('dialect') == gn.TASK_DIALECT:
+        gn.validate_boundary(raw.get('host_boundary'), raw['cwd'])
+        gn.validate_task(raw)
     if 'resume_job' in raw and (not isinstance(raw['resume_job'], str) or not Path(raw['resume_job']).is_absolute()):
         raise ValueError('resume_job requires an absolute owned job path')
     if 'workflow' in raw and (not isinstance(raw['workflow'], str) or not Path(raw['workflow']).is_absolute()):
@@ -151,13 +161,17 @@ def profile(req):
         if not isinstance(dialect, dict):
             raise ValueError('Grok requires an explicit dialect with auth_argv, run_argv and required_flags')
         if 'id' in dialect:
-            if dialect not in (GROK_DIALECT, gn.DIALECT):
+            if dialect not in (GROK_DIALECT, gn.DIALECT, gn.TASK_DIALECT):
                 raise ValueError('unsupported named Grok dialect or confinement')
             if dialect == GROK_DIALECT and (req['mode'] != 'read-only' or req.get('allowed_commands')):
                 raise ValueError('response-only Grok supports read-only mode without commands; isolated writing is unavailable')
             auth = ['models']
             args = ['--model', req['model'], '--cwd', req['cwd'], '--permission-mode', 'dontAsk', '--sandbox', 'off', '--output-format', 'streaming-messages-json', '--tools', 'read_file', '--disallowed-tools', 'read_file,search_tool,use_tool', '--no-subagents', '--disable-web-search']
-            if dialect == gn.DIALECT:
+            if dialect == gn.TASK_DIALECT:
+                args = args[:args.index('--tools')] + gn.task_argv(req)
+                if req.get('resume_session'):
+                    args += ['--resume', req['resume_session']]
+            elif dialect == gn.DIALECT:
                 args = args[:args.index('--tools')] + ['--no-subagents', '--disable-web-search'] + gn.argv(req)
                 if req.get('resume_session'):
                     args += ['--resume', req['resume_session']]
@@ -195,7 +209,7 @@ def profile(req):
     return command, auth, args, required
 
 
-def parse_grok_output(output, model, cwd=None):
+def parse_grok_output(output, model, cwd=None, allow_web_usage=False):
     try:
         records = [json.loads(line) for line in output.splitlines() if line.strip()]
     except json.JSONDecodeError:
@@ -254,10 +268,22 @@ def parse_grok_output(output, model, cwd=None):
             if not isinstance(usage, dict):
                 raise ValueError('Grok usage must be an object')
             server_tools = usage.get('server_tool_use', {})
-            if not isinstance(server_tools, dict) or any(value != 0 for value in server_tools.values()):
+            if not isinstance(server_tools, dict):
+                raise ValueError('response-only Grok reported server tool use')
+            if allow_web_usage:
+                for key, value in server_tools.items():
+                    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                        raise ValueError('Grok web usage must be a non-negative integer')
+                    if key != 'web_search_requests' and value != 0:
+                        raise ValueError('response-only Grok reported server tool use')
+            elif any(value != 0 for value in server_tools.values()):
                 raise ValueError('response-only Grok reported server tool use')
             for entry in billing.values():
-                if entry.get('webSearchRequests', 0) != 0:
+                count = entry.get('webSearchRequests', 0)
+                if allow_web_usage:
+                    if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+                        raise ValueError('Grok web usage must be a non-negative integer')
+                elif count != 0:
                     raise ValueError('response-only Grok reported web tool use')
         else:
             raise ValueError('unexpected Grok event in response-only profile')
@@ -267,8 +293,8 @@ def parse_grok_output(output, model, cwd=None):
 
 
 def parse_output(provider, output, model, dialect=None, cwd=None):
-    if provider == 'grok' and dialect == GROK_DIALECT:
-        return parse_grok_output(output, model, cwd)
+    if provider == 'grok' and dialect in (GROK_DIALECT, gn.TASK_DIALECT):
+        return parse_grok_output(output, model, cwd, allow_web_usage=dialect == gn.TASK_DIALECT)
     try:
         records = [json.loads(output)] if provider == 'claude' else [json.loads(line) for line in output.splitlines() if line.strip()]
     except json.JSONDecodeError:
@@ -364,7 +390,7 @@ def grok_catalog(output):
     return models
 
 
-def inspect_grok(output, grok_home=None):
+def inspect_grok(output, grok_home=None, dialect=None):
     data = json.loads(output)
     if not isinstance(data, dict):
         raise ValueError('Grok inspect must be an object')
@@ -385,6 +411,9 @@ def inspect_grok(output, grok_home=None):
             path = source.get('path')
             if key == 'skills' and source.get('type') == 'bundled' and isinstance(path, str) and Path(path).is_absolute() and bundled_root in Path(path).resolve().parents:
                 continue
+            agent_root = bundled_root.parent / 'agents'
+            if dialect == gn.TASK_DIALECT and key == 'agents' and source.get('type') == 'bundled' and isinstance(path, str) and Path(path).is_absolute() and agent_root in Path(path).resolve().parents:
+                continue
             raise ValueError(f'Grok inspect discovered unsupported {key}')
     return data
 
@@ -392,20 +421,28 @@ def inspect_grok(output, grok_home=None):
 def run(raw, on_start=None):
     started = time.monotonic()
     req = validate(resolve_config(raw))
-    req['brief'] = WORKER_HEADER + req['brief']
-    native_grok = req['provider'] == 'grok' and req.get('dialect') == gn.DIALECT
-    child_env = environment(req['provider'])
+    task_grok = req['provider'] == 'grok' and req.get('dialect') == gn.TASK_DIALECT
+    native_grok = req['provider'] == 'grok' and req.get('dialect') in (gn.DIALECT, gn.TASK_DIALECT)
+    req['brief'] = (gn.TASK_HEADER if task_grok else WORKER_HEADER) + req['brief']
+    child_env = environment(req['provider'], req.get('dialect'), req.get('mode'))
     named_grok = req['provider'] == 'grok' and isinstance(req.get('dialect'), dict) and 'id' in req['dialect']
     base = Path(req['project']) / '.pstack' / 'runs'
     base.mkdir(parents=True, exist_ok=True, mode=0o700)
     job = base / uuid.uuid4().hex
     job.mkdir(mode=0o700)
     receipt = {'job': str(job), 'job_id': job.name, 'artifacts': {'receipt': str(job / 'receipt.json'), 'response': str(job / 'response.txt')}, 'provider': req['provider'], 'model': req['model'], 'effort': req.get('effort'), 'mode': req['mode'], 'cwd': req['cwd'], 'status': 'starting', 'credentialIsolation': 'filtered environment; provider on-disk credentials remain accessible', 'runnerPid': os.getpid(), 'runnerStart': identity(os.getpid()), 'reportedModel': None, 'modelVerified': False, 'modelEvidence': 'pinned-argv'}
-    receipt.update(promptDigest=hashlib.sha256(req['brief'].encode()).hexdigest(), request={k: req[k] for k in ('provider', 'model', 'effort', 'mode', 'project', 'cwd', 'prompt_file', 'executable', 'dialect', 'timeout', 'allowed_commands', 'isolated_scratch', 'host_boundary', 'resume_job') if k in req}, transport='subprocess-stdin')
+    receipt.update(promptDigest=hashlib.sha256(req['brief'].encode()).hexdigest(), request={k: req[k] for k in ('provider', 'model', 'effort', 'mode', 'project', 'cwd', 'prompt_file', 'executable', 'dialect', 'timeout', 'allowed_commands', 'isolated_scratch', 'host_boundary', 'resume_job', 'capability_scope') if k in req}, transport='subprocess-stdin')
     if named_grok:
         receipt.update(transport='subprocess-prompt-file', confinement='response-only', filesystemSandbox='off', filesystemIsolation='unavailable', toolAccess='disabled by profile; live init pending', effortEvidence='pinned-argv' if req.get('effort') else 'provider-default', unsupportedCapabilities=['isolated-write', 'native file tools', 'filesystem and credential isolation'])
     if native_grok:
-        receipt.update(confinement='managed-host', filesystemIsolation='host-declared; per-launch boundary probe required', unsupportedCapabilities=['per-job VM and credential isolation', 'native Codex collaboration API'], toolAccess='native tools; live init pending')
+        unsupported = ['per-job VM and credential isolation', 'native Codex collaboration API']
+        tool_access = 'native tools; live init pending'
+        if task_grok:
+            unsupported.append('semantic enforcement of user-authorized scope')
+            tool_access = 'native task tools; live init pending'
+        receipt.update(confinement='managed-host', filesystemIsolation='host-declared; per-launch boundary probe required', unsupportedCapabilities=unsupported, toolAccess=tool_access)
+        if task_grok:
+            receipt.update(capabilityScope=req['capability_scope'], terminalReach=gn.TERMINAL_REACH, writerScope=gn.WRITER_SCOPE)
     workflow = req.get('workflow')
     def metric(kind, metadata=None, stage=None):
         if workflow:
@@ -528,7 +565,7 @@ def run(raw, on_start=None):
             code, discovery, _ = execute([command, 'inspect', '--json'], stage='inspect')
             if code:
                 raise ValueError('Grok inspect failed')
-            inspected = inspect_grok(discovery, child_env.get('GROK_HOME'))
+            inspected = inspect_grok(discovery, child_env.get('GROK_HOME'), req.get('dialect'))
             receipt['configurationPreflight'] = True
             receipt['observedDiscovery'] = {key: inspected.get(key) for key in ('skills', 'agents', 'externalCompat')}
         receipt['authPreflight'] = True
@@ -539,10 +576,15 @@ def run(raw, on_start=None):
         native_metrics = {}
         if native_grok:
             output, native_metrics = gn.normalize(output, req)
-        response, reported, metrics = parse_output(req['provider'], output, req['model'], GROK_DIALECT if native_grok else req.get('dialect'), req['cwd'])
+        parser_dialect = GROK_DIALECT if native_grok and not task_grok else req.get('dialect')
+        response, reported, metrics = parse_output(req['provider'], output, req['model'], parser_dialect, req['cwd'])
         metrics.update(native_metrics)
         if named_grok:
-            receipt['toolAccess'] = 'native tools; verified in init and matched results' if native_grok else 'none; verified in native init'
+            if task_grok:
+                receipt['toolAccess'] = 'native task tools; init inventory discovered; artifact verification separate'
+                receipt['capabilityAvailability'] = metrics.get('capabilityAvailability')
+            else:
+                receipt['toolAccess'] = 'native tools; verified in init and matched results' if native_grok else 'none; verified in native init'
         (job / 'response.txt').write_text(response + '\n')
         os.chmod(job / 'response.txt', 0o600)
         receipt.update(status='complete', authVerified=True, reportedModel=reported, modelVerified=reported is not None, modelEvidence='provider-report' if reported else 'pinned-argv', metrics=metrics)
@@ -585,35 +627,39 @@ def doctor(project=None):
         if not item['executable']:
             item['status'] = 'blocked: CLI unavailable'
             continue
-        command = subprocess.run([binary, '--version'], capture_output=True, text=True, env=environment(provider))
+        probe_env = environment(provider, settings.get('dialect'), 'read-only')
+        command = subprocess.run([binary, '--version'], capture_output=True, text=True, env=probe_env)
         item['version'] = command.stdout.strip()[:300]
         item['versionProbe'] = command.returncode == 0
         if provider == 'grok':
             item['dialectConfigured'] = isinstance(settings.get('dialect'), dict)
-            if settings.get('dialect') not in (GROK_DIALECT, gn.DIALECT):
+            if settings.get('dialect') not in (GROK_DIALECT, gn.DIALECT, gn.TASK_DIALECT):
                 item['status'] = 'blocked: reviewed named response-only dialect required for native preflight'
                 continue
-            native = settings.get('dialect') == gn.DIALECT
-            item.update(confinement='managed-host' if native else 'response-only', filesystemSandbox='off', filesystemIsolation='requires qualified outer host boundary' if native else 'unavailable', toolAccess='must be verified in live init')
+            native = settings.get('dialect') in (gn.DIALECT, gn.TASK_DIALECT)
+            task = settings.get('dialect') == gn.TASK_DIALECT
+            item.update(confinement='managed-host' if native else 'response-only', filesystemSandbox='off', filesystemIsolation='requires qualified outer host boundary' if native else 'unavailable', toolAccess='must be verified in live init', profile=settings['dialect']['id'])
             try:
                 cwd = str(Path(project or '.').resolve())
                 _, auth, _, required = profile(dict(settings, provider='grok', model='catalog-preflight', mode='read-only', cwd=cwd))
-                help_probe = subprocess.run([binary, '--help'], cwd=cwd, capture_output=True, text=True, env=environment(provider))
+                help_probe = subprocess.run([binary, '--help'], cwd=cwd, capture_output=True, text=True, env=probe_env)
                 item['helpPreflight'] = help_probe.returncode == 0 and all(flag in help_probe.stdout for flag in required)
                 if not item['versionProbe'] or not item['helpPreflight']:
                     raise ValueError('version or required native help capability unavailable')
-                catalog = subprocess.run([binary] + auth, cwd=cwd, capture_output=True, text=True, env=environment(provider))
+                catalog = subprocess.run([binary] + auth, cwd=cwd, capture_output=True, text=True, env=probe_env)
                 if catalog.returncode:
                     raise ValueError('Grok authenticated model catalog failed')
                 item['availableModels'] = grok_catalog(catalog.stdout)
                 item['authPreflight'] = True
                 item['catalogPreflight'] = True
-                discovery = subprocess.run([binary, 'inspect', '--json'], cwd=cwd, capture_output=True, text=True, env=environment(provider))
+                discovery = subprocess.run([binary, 'inspect', '--json'], cwd=cwd, capture_output=True, text=True, env=probe_env)
                 if discovery.returncode:
                     raise ValueError('Grok inspect failed')
-                inspect_grok(discovery.stdout)
+                inspect_grok(discovery.stdout, os.environ.get('GROK_HOME'), settings.get('dialect'))
                 item['configurationPreflight'] = True
-                item['status'] = 'ready for managed-host live execution probe' if native else 'ready for response-only live execution probe'
+                if task: item['status'] = 'ready for managed-host task live execution probe'
+                elif native: item['status'] = 'ready for managed-host live execution probe'
+                else: item['status'] = 'ready for response-only live execution probe'
             except (ValueError, OSError) as error:
                 item['status'] = 'blocked: ' + str(error)
             continue

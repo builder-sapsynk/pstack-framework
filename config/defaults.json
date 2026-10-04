@@ -133,7 +133,11 @@
     },
     "grok": {
       "executable": "grok",
-      "transport": "grok-build"
+      "transport": "grok-build",
+      "dialect": {
+        "id": "grok-build-1",
+        "confinement": "response-only"
+      }
     },
     "codex": {
       "executable": "codex",

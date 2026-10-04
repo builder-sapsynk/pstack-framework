@@ -6,6 +6,7 @@ import math
 import fcntl
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import signal
@@ -16,13 +17,22 @@ import uuid
 
 PROVIDERS = ('claude', 'grok', 'codex')
 KEYS = {'claude': {'ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN'}, 'grok': {'XAI_API_KEY', 'GROK_API_KEY'}, 'codex': {'OPENAI_API_KEY', 'CODEX_API_KEY', 'CODEX_ACCESS_TOKEN'}}
+GROK_DIALECT = {'id': 'grok-build-1', 'confinement': 'response-only'}
+WORKER_HEADER = ('You are the assigned external worker for this bounded request. Complete the brief below in your assigned role. Do not activate a framework router, reroute this task, launch subagents, or delegate to another provider. Respect the selected sandbox and report unsupported capabilities.\n\n')
 
 
 def environment(provider):
     # Keep proxy, certificate and host settings. Remove credential-bearing variables
     # belonging to other services; disk credentials remain accessible to the CLI.
     allowed = KEYS[provider]
-    return {k: v for k, v in os.environ.items() if k in allowed or not (any(s in k.upper() for s in ('TOKEN', 'SECRET', 'PASSWORD', 'API_KEY')) or k in {'GH_TOKEN', 'GITHUB_TOKEN'})}
+    env = {k: v for k, v in os.environ.items() if k in allowed or not (any(s in k.upper() for s in ('TOKEN', 'SECRET', 'PASSWORD', 'API_KEY')) or k in {'GH_TOKEN', 'GITHUB_TOKEN'})}
+    if provider == 'grok':
+        env.update({key: '0' for key in ('GROK_MEMORY', 'GROK_SUBAGENTS', 'GROK_TOOL_SEARCH', 'GROK_WRITE_FILE', 'GROK_WEB_FETCH', 'GROK_LSP_TOOLS')})
+        env['GROK_DISABLE_AUTOUPDATER'] = '1'
+        for vendor in ('CURSOR', 'CLAUDE'):
+            for surface in ('SKILLS', 'RULES', 'AGENTS', 'MCPS', 'HOOKS', 'SESSIONS'):
+                env[f'GROK_{vendor}_{surface}_ENABLED'] = '0'
+    return env
 
 
 def save(path, value):
@@ -97,15 +107,26 @@ def profile(req):
         dialect = req.get('dialect')
         if not isinstance(dialect, dict):
             raise ValueError('Grok requires an explicit dialect with auth_argv, run_argv and required_flags')
-        auth, args, required = dialect.get('auth_argv'), dialect.get('run_argv'), dialect.get('required_flags')
-        if not all(isinstance(v, list) and all(isinstance(x, str) for x in v) for v in (auth, args, required)):
-            raise ValueError('dialect argv and required_flags must be string arrays')
-        if not required or not any('{model}' in x for x in args) or not any('{mode}' in x for x in args):
-            raise ValueError('dialect must pin model and access mode and declare help capabilities')
-        if req.get('effort') and not any('{effort}' in x for x in args):
-            raise ValueError('dialect cannot honor effort')
-        substitutions = {'model': req['model'], 'effort': req.get('effort', ''), 'mode': req['mode'], 'cwd': req['cwd']}
-        args = [x.format(**substitutions) for x in args]
+        if 'id' in dialect:
+            if dialect != GROK_DIALECT:
+                raise ValueError('unsupported named Grok dialect or confinement')
+            if req['mode'] != 'read-only' or req.get('allowed_commands'):
+                raise ValueError('response-only Grok supports read-only mode without commands; isolated writing is unavailable')
+            auth = ['models']
+            args = ['--model', req['model'], '--cwd', req['cwd'], '--permission-mode', 'dontAsk', '--sandbox', 'off', '--output-format', 'streaming-messages-json', '--tools', 'read_file', '--disallowed-tools', 'read_file,search_tool,use_tool', '--no-subagents', '--disable-web-search']
+            if req.get('effort'):
+                args += ['--reasoning-effort', req['effort']]
+            required = [x for x in args if x.startswith('--')] + ['--prompt-file']
+        else:
+            auth, args, required = dialect.get('auth_argv'), dialect.get('run_argv'), dialect.get('required_flags')
+            if not all(isinstance(v, list) and all(isinstance(x, str) for x in v) for v in (auth, args, required)):
+                raise ValueError('dialect argv and required_flags must be string arrays')
+            if not required or not any('{model}' in x for x in args) or not any('{mode}' in x for x in args):
+                raise ValueError('dialect must pin model and access mode and declare help capabilities')
+            if req.get('effort') and not any('{effort}' in x for x in args):
+                raise ValueError('dialect cannot honor effort')
+            substitutions = {'model': req['model'], 'effort': req.get('effort', ''), 'mode': req['mode'], 'cwd': req['cwd']}
+            args = [x.format(**substitutions) for x in args]
     elif provider == 'claude':
         auth = ['auth', 'status', '--json']
         args = ['-p', '--model', req['model'], '--permission-mode', 'plan' if req['mode'] == 'read-only' else 'acceptEdits', '--output-format', 'json', '--setting-sources', 'project', '--strict-mcp-config', '--no-session-persistence', '--disable-slash-commands', '--tools', 'Read,Grep,Glob' if req['mode'] == 'read-only' else 'Read,Write,Edit,Grep,Glob', '--restricted', '--disallowedTools', 'Agent,Task,WebSearch,WebFetch,Bash']
@@ -122,12 +143,85 @@ def profile(req):
         if req.get('effort'):
             args += ['--config', 'model_reasoning_effort=' + json.dumps(req['effort'])]
         required = ['--disable', '--model', '--sandbox', '--cd', '--ephemeral', '--json']
-    if any('bypass' in x or 'dangerously' in x for x in args + auth):
+    if any(any(unsafe in x.lower() for unsafe in ('bypass', 'dangerously', '--always-approve', '--yolo')) for x in args + auth):
         raise ValueError('permission bypass is prohibited')
     return command, auth, args, required
 
 
-def parse_output(provider, output, model):
+def parse_grok_output(output, model, cwd=None):
+    try:
+        records = [json.loads(line) for line in output.splitlines() if line.strip()]
+    except json.JSONDecodeError:
+        raise ValueError('malformed provider JSON')
+    session, assistant_seen, result, metrics = None, False, None, {}
+    for record in records:
+        if not isinstance(record, dict) or result is not None:
+            raise ValueError('invalid Grok event or event after terminal result')
+        kind = record.get('type')
+        if record.get('is_error') is True or kind in ('error', 'turn.failed'):
+            raise ValueError('Grok reported an error')
+        if session is None:
+            if kind != 'system' or record.get('subtype') != 'init':
+                raise ValueError('Grok init must be the first event')
+            session = record.get('session_id')
+            if not isinstance(session, str) or not session.strip() or record.get('model') != model:
+                raise ValueError('Grok init session or served model mismatch')
+            if record.get('tools') != [] or record.get('mcp_servers') != []:
+                raise ValueError('response-only Grok init must report no tools or MCP servers')
+            if record.get('permissionMode') != 'dontAsk' or (cwd is not None and record.get('cwd') != cwd):
+                raise ValueError('Grok init permission mode or cwd mismatch')
+            metrics['session_id'] = session
+            metrics['observedSkills'] = record.get('skills', [])
+            metrics['observedSlashCommands'] = record.get('slash_commands', [])
+            continue
+        if record.get('session_id') != session:
+            raise ValueError('Grok session changed or is missing')
+        if kind == 'assistant':
+            message = record.get('message')
+            if not isinstance(message, dict) or message.get('model') != model or message.get('role') != 'assistant':
+                raise ValueError('Grok assistant served model or message mismatch')
+            content = message.get('content')
+            if not isinstance(content, list) or not content:
+                raise ValueError('Grok assistant content must be nonempty blocks')
+            for block in content:
+                if not isinstance(block, dict) or block.get('type') not in ('text', 'thinking'):
+                    raise ValueError('response-only Grok reported a tool or unknown content block')
+                if not isinstance(block.get(block['type']), str):
+                    raise ValueError('Grok assistant block must contain text')
+            if message.get('stop_reason') not in ('end_turn', None):
+                raise ValueError('Grok assistant ended unexpectedly')
+            assistant_seen = True
+        elif kind == 'result':
+            if not assistant_seen or record.get('subtype') != 'success' or record.get('is_error') is not False:
+                raise ValueError('successful Grok terminal result required')
+            if record.get('stop_reason') != 'end_turn' or not isinstance(record.get('result'), str) or not record['result'].strip():
+                raise ValueError('nonempty completed Grok result required')
+            result = record['result'].strip()
+            for key in ('usage', 'modelUsage', 'total_cost_usd', 'duration_ms', 'duration_api_ms'):
+                if key in record:
+                    metrics[key] = record[key]
+            billing = record.get('modelUsage', {})
+            if not isinstance(billing, dict) or not all(isinstance(k, str) and isinstance(v, dict) for k, v in billing.items()):
+                raise ValueError('modelUsage must map billing labels to objects')
+            usage = record.get('usage', {})
+            if not isinstance(usage, dict):
+                raise ValueError('Grok usage must be an object')
+            server_tools = usage.get('server_tool_use', {})
+            if not isinstance(server_tools, dict) or any(value != 0 for value in server_tools.values()):
+                raise ValueError('response-only Grok reported server tool use')
+            for entry in billing.values():
+                if entry.get('webSearchRequests', 0) != 0:
+                    raise ValueError('response-only Grok reported web tool use')
+        else:
+            raise ValueError('unexpected Grok event in response-only profile')
+    if result is None:
+        raise ValueError('successful Grok terminal result required')
+    return result, model, metrics
+
+
+def parse_output(provider, output, model, dialect=None, cwd=None):
+    if provider == 'grok' and dialect == GROK_DIALECT:
+        return parse_grok_output(output, model, cwd)
     try:
         records = [json.loads(output)] if provider == 'claude' else [json.loads(line) for line in output.splitlines() if line.strip()]
     except json.JSONDecodeError:
@@ -213,17 +307,54 @@ def authenticated(provider, code, output):
         return False
 
 
+def grok_catalog(output):
+    if 'You are logged in with grok.com.' not in output.splitlines() or 'Available models:' not in output.splitlines():
+        raise ValueError('Grok models did not confirm authenticated catalog')
+    available = output.split('Available models:', 1)[1]
+    models = re.findall(r'^\s*[-*]\s+(\S+)(?:\s+\(default\))?\s*$', available, re.MULTILINE)
+    if not models:
+        raise ValueError('Grok authenticated model catalog is empty')
+    return models
+
+
+def inspect_grok(output, grok_home=None):
+    data = json.loads(output)
+    if not isinstance(data, dict):
+        raise ValueError('Grok inspect must be an object')
+    for key in ('hooks', 'mcpServers', 'projectInstructions', 'plugins'):
+        if data.get(key) != []:
+            raise ValueError(f'Grok inspect discovered unsupported {key}')
+    bundled_root = (Path(grok_home or os.environ.get('GROK_HOME') or Path.home() / '.grok') / 'bundled' / 'skills').resolve()
+    for key in ('skills', 'agents'):
+        entries = data.get(key)
+        if not isinstance(entries, list):
+            raise ValueError(f'Grok inspect discovered unsupported {key}')
+        for entry in entries:
+            source = entry.get('source') if isinstance(entry, dict) else None
+            if not isinstance(source, dict):
+                raise ValueError(f'Grok inspect discovered unsupported {key}')
+            if source.get('type') == 'builtin':
+                continue
+            path = source.get('path')
+            if key == 'skills' and source.get('type') == 'bundled' and isinstance(path, str) and Path(path).is_absolute() and bundled_root in Path(path).resolve().parents:
+                continue
+            raise ValueError(f'Grok inspect discovered unsupported {key}')
+    return data
+
+
 def run(raw, on_start=None):
     started = time.monotonic()
     req = validate(resolve_config(raw))
-    if req['provider'] == 'codex':
-        req['brief'] = ('You are the assigned external worker for this bounded request. Complete the brief below in your assigned role. Do not activate a framework router, reroute this task, launch subagents, or delegate to another provider. Respect the selected sandbox and report unsupported capabilities.\n\n' + req['brief'])
+    req['brief'] = WORKER_HEADER + req['brief']
+    named_grok = req['provider'] == 'grok' and isinstance(req.get('dialect'), dict) and 'id' in req['dialect']
     base = Path(req['project']) / '.pstack' / 'runs'
     base.mkdir(parents=True, exist_ok=True, mode=0o700)
     job = base / uuid.uuid4().hex
     job.mkdir(mode=0o700)
     receipt = {'job': str(job), 'job_id': job.name, 'artifacts': {'receipt': str(job / 'receipt.json'), 'response': str(job / 'response.txt')}, 'provider': req['provider'], 'model': req['model'], 'effort': req.get('effort'), 'mode': req['mode'], 'cwd': req['cwd'], 'status': 'starting', 'credentialIsolation': 'filtered environment; provider on-disk credentials remain accessible', 'runnerPid': os.getpid(), 'runnerStart': identity(os.getpid()), 'reportedModel': None, 'modelVerified': False, 'modelEvidence': 'pinned-argv'}
     receipt.update(promptDigest=hashlib.sha256(req['brief'].encode()).hexdigest(), request={k: req[k] for k in ('provider', 'model', 'effort', 'mode', 'project', 'cwd', 'prompt_file', 'executable', 'dialect', 'timeout', 'allowed_commands', 'isolated_scratch') if k in req}, transport='subprocess-stdin')
+    if named_grok:
+        receipt.update(transport='subprocess-prompt-file', confinement='response-only', filesystemSandbox='off', filesystemIsolation='unavailable', toolAccess='disabled by profile; live init pending', effortEvidence='pinned-argv' if req.get('effort') else 'provider-default', unsupportedCapabilities=['isolated-write', 'native file tools', 'filesystem and credential isolation'])
     for key in ('host', 'source_pin'):
         if key in req: receipt[key] = req[key]
     save(job / 'receipt.json', receipt)
@@ -275,6 +406,9 @@ def run(raw, on_start=None):
             for pipe in (process.stdin, process.stdout, process.stderr):
                 if pipe and not pipe.closed: pipe.close()
     try:
+        command, auth, args, required = profile(req)
+        if named_grok:
+            args += ['--prompt-file', str(job / 'brief.txt')]
         if req['mode'] == 'isolated-write':
             git_dir = subprocess.run(['git', '-C', req['cwd'], 'rev-parse', '--absolute-git-dir'], capture_output=True, text=True)
             lock_path = (Path(git_dir.stdout.strip()) if git_dir.returncode == 0 else Path(req['cwd'])) / '.pstack-writer.lock'
@@ -282,7 +416,6 @@ def run(raw, on_start=None):
             os.chmod(lock_path, 0o600)
             try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError: raise ValueError('isolated worktree already reserved by another writer')
-        command, auth, args, required = profile(req)
         if not shutil.which(command):
             raise ValueError('provider CLI unavailable')
         code, version, _ = execute([command, '--version'])
@@ -297,15 +430,27 @@ def run(raw, on_start=None):
         code, help_text, _ = execute([command, 'exec', '--help'] if req['provider'] == 'codex' else [command, '--help'])
         if code or any(flag not in help_text for flag in required):
             raise ValueError('CLI help does not confirm required capabilities')
-        code, auth_text, _ = execute([command] + auth)
+        code, auth_text, _ = execute([command] + auth, stage='auth')
         if not authenticated(req['provider'], code, auth_text):
             raise ValueError('provider authentication preflight failed')
+        if named_grok:
+            receipt['availableModels'] = grok_catalog(auth_text)
+            if req['model'] not in receipt['availableModels']:
+                raise ValueError('requested Grok model is absent from authenticated catalog')
+            code, discovery, _ = execute([command, 'inspect', '--json'], stage='inspect')
+            if code:
+                raise ValueError('Grok inspect failed')
+            inspected = inspect_grok(discovery)
+            receipt['configurationPreflight'] = True
+            receipt['observedDiscovery'] = {key: inspected.get(key) for key in ('skills', 'agents', 'externalCompat')}
         receipt['authPreflight'] = True
         receipt['argv'] = [command] + args
-        code, output, _ = execute([command] + args, req['brief'], stage='provider')
+        code, output, _ = execute([command] + args, None if named_grok else req['brief'], stage='provider')
         if code:
             raise ValueError(f'provider exited {code}')
-        response, reported, metrics = parse_output(req['provider'], output, req['model'])
+        response, reported, metrics = parse_output(req['provider'], output, req['model'], req.get('dialect'), req['cwd'])
+        if named_grok:
+            receipt['toolAccess'] = 'none; verified in native init'
         (job / 'response.txt').write_text(response + '\n')
         os.chmod(job / 'response.txt', 0o600)
         receipt.update(status='complete', authVerified=True, reportedModel=reported, modelVerified=reported is not None, modelEvidence='provider-report' if reported else 'pinned-argv', metrics=metrics)
@@ -347,7 +492,31 @@ def doctor(project=None):
         item['versionProbe'] = command.returncode == 0
         if provider == 'grok':
             item['dialectConfigured'] = isinstance(settings.get('dialect'), dict)
-            item['status'] = 'blocked: explicit dialect and authenticated structured-output probe required'
+            if settings.get('dialect') != GROK_DIALECT:
+                item['status'] = 'blocked: reviewed named response-only dialect required for native preflight'
+                continue
+            item.update(confinement='response-only', filesystemSandbox='off', filesystemIsolation='unavailable', toolAccess='must be verified in live init')
+            try:
+                cwd = str(Path(project or '.').resolve())
+                _, auth, _, required = profile(dict(settings, provider='grok', model='catalog-preflight', mode='read-only', cwd=cwd))
+                help_probe = subprocess.run([binary, '--help'], cwd=cwd, capture_output=True, text=True, env=environment(provider))
+                item['helpPreflight'] = help_probe.returncode == 0 and all(flag in help_probe.stdout for flag in required)
+                if not item['versionProbe'] or not item['helpPreflight']:
+                    raise ValueError('version or required native help capability unavailable')
+                catalog = subprocess.run([binary] + auth, cwd=cwd, capture_output=True, text=True, env=environment(provider))
+                if catalog.returncode:
+                    raise ValueError('Grok authenticated model catalog failed')
+                item['availableModels'] = grok_catalog(catalog.stdout)
+                item['authPreflight'] = True
+                item['catalogPreflight'] = True
+                discovery = subprocess.run([binary, 'inspect', '--json'], cwd=cwd, capture_output=True, text=True, env=environment(provider))
+                if discovery.returncode:
+                    raise ValueError('Grok inspect failed')
+                inspect_grok(discovery.stdout)
+                item['configurationPreflight'] = True
+                item['status'] = 'ready for response-only live execution probe'
+            except (ValueError, OSError) as error:
+                item['status'] = 'blocked: ' + str(error)
             continue
         args = ['auth', 'status', '--json'] if provider == 'claude' else ['login', 'status']
         probe = subprocess.run([binary] + args, capture_output=True, text=True, env=environment(provider))

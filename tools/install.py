@@ -35,13 +35,13 @@ def installed_package(executable='codex', home=None):
     return package
 
 
-def verify_package(package, digest, version='0.1.3', upstream_commit=None):
+def verify_package(package, digest, version=None, upstream_commit=None):
     """Check content identity of the actual installed package, independently of the lock."""
     identity = pathlib.Path(package) / 'framework.json'
     if not identity.is_file():
         raise ValueError(f'installed package identity missing: {identity}')
     actual = json.loads(identity.read_text())
-    if actual.get('source_digest') != digest or actual.get('version') != version:
+    if actual.get('source_digest') != digest or (version is not None and actual.get('version') != version):
         raise ValueError('installed framework does not match project version/content pin; bootstrap this project before continuing')
     if upstream_commit and actual.get('upstream_commit') != upstream_commit:
         raise ValueError('installed framework upstream revision differs from the project pin')
@@ -74,7 +74,7 @@ def managed_block(path, content, start_marker=START, end_marker=END):
         path.write_text(new)
 
 
-def install(source, revision=None, global_default=False, home=None, executable='codex', expected_digest=None, package=None):
+def install(source, revision=None, global_default=False, home=None, executable='codex', expected_digest=None, package=None, expected_version=None):
     if global_default:
         validate_managed_block(codex_home(home) / 'AGENTS.md')
     cli = shutil.which(executable)
@@ -96,7 +96,7 @@ def install(source, revision=None, global_default=False, home=None, executable='
     active_package = pathlib.Path(roots[0]) if len(roots) == 1 else package
     if expected_digest and not active_package:
         active_package = installed_package(cli, home)
-    identity = verify_package(active_package, expected_digest) if expected_digest else None
+    identity = verify_package(active_package, expected_digest, expected_version) if expected_digest else None
     if global_default:
         managed_block(codex_home(home) / 'AGENTS.md',
                       'Use the installed sapsynk-pstack plugin as the default engineering framework.\n'
@@ -119,13 +119,14 @@ def main():
     parser.add_argument('--home', type=pathlib.Path)
     parser.add_argument('--digest', help='Expected framework semantic SHA256')
     parser.add_argument('--package', type=pathlib.Path, help='Actual installed package directory to verify')
+    parser.add_argument('--version', dest='expected_version', help='Expected framework version; checked only with --digest')
     args = parser.parse_args()
     if args.remote and (not args.revision or len(args.revision) != 40 or any(c not in '0123456789abcdef' for c in args.revision)):
         parser.error('remote installation requires an exact 40-character commit SHA')
     if args.local and not (args.local / '.agents/plugins/marketplace.json').exists():
         parser.error('local repository lacks .agents/plugins/marketplace.json')
     try:
-        install(args.local or args.remote, args.revision, args.global_default, args.home, expected_digest=args.digest, package=args.package)
+        install(args.local or args.remote, args.revision, args.global_default, args.home, expected_digest=args.digest, package=args.package, expected_version=args.expected_version)
     except (RuntimeError, ValueError, subprocess.CalledProcessError) as error:
         print(f'Installation failed: {error}', file=sys.stderr)
         return 1

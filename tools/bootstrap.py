@@ -5,6 +5,7 @@ import json
 import pathlib
 import subprocess
 import sys
+from build import VERSION
 from install import install, managed_block, validate_managed_block
 
 UPSTREAM = '23e4138daa01c42d4969f7a5465f82704e64f798'
@@ -106,13 +107,13 @@ def bootstrap(project, revision, update=False, name=None, email=None, do_install
         digest = computed
     if not digest or len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
         raise ValueError('an exact semantic content digest is required; supply a pinned --local checkout or --digest')
-    lock = {'schema_version': 1, 'version': '0.1.3', 'source': SOURCE, 'revision': revision,
+    lock = {'schema_version': 1, 'version': VERSION, 'source': SOURCE, 'revision': revision,
             'upstream_revision': UPSTREAM, 'source_digest': digest, 'plugin': 'sapsynk-pstack@sapsynk-pstack'}
     lockpath = project / '.pstack/framework.lock.json'
     if lockpath.exists() and json.loads(lockpath.read_text()) != lock and not update:
         raise ValueError('framework pin differs; use --update to change it explicitly')
     # Install first: failed installation must not claim a successfully bound project.
-    receipt = install(local or SOURCE, None if local else revision, expected_digest=digest, package=package) if do_install else {'native_installation': 'not_requested', 'installed_identity_verified': False}
+    receipt = install(local or SOURCE, None if local else revision, expected_digest=digest, package=package, expected_version=VERSION) if do_install else {'native_installation': 'not_requested', 'installed_identity_verified': False}
     config = project / '.pstack/config.json'
     settings = json.loads(config.read_text()) if config.exists() else {'schema_version': 1, 'host': 'codex'}
     identity = settings.get('commit_identity', {})

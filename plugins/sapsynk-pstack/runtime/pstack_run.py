@@ -15,6 +15,10 @@ import threading
 import time
 import uuid
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import dispatch_policy
+import panel_divergence
+
 PROVIDERS = ('codex', 'grok', 'claude')
 MODES = ('write', 'read')
 TASK = re.compile(r'^[a-z0-9][a-z0-9._-]{0,63}$')
@@ -23,11 +27,16 @@ KEYS = {'claude': {'ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN'}, 'grok': {'XA
 TERMINAL = ('succeeded', 'failed', 'killed', 'timeout', 'startup_timeout', 'stalled', 'lost')
 EXIT = {'succeeded': 0, 'timeout': 124, 'startup_timeout': 124, 'stalled': 124, 'killed': 130}
 DEFAULTS = {'startup_timeout': 120.0, 'idle_timeout': 900.0, 'timeout': 3600.0}
-SUMMARY_LIMIT = 600
+SUMMARY_LIMIT = 2000
+ATTEMPT_KEYS = ('attempt', 'state', 'exit_code', 'session_id', 'model', 'effort', 'cost_usd', 'usage', 'duration_s',
+                'started_at', 'ended_at', 'error')
 HEADER = ('You are pstack worker `{task}` running as an external {provider} CLI agent in {mode} mode.\n'
           'Your working directory is {where}.\n'
           'You run unattended with full autonomy on a dedicated machine: no sandbox, no approval prompts, '
           'full shell, tools and network. Use whatever the task needs.\n'
+          'You are a worker, not the coordinator. Do the brief directly. Do not load the pstack router, poteto-mode or '
+          'playbooks, run the bootstrap check, resolve roles, or start other agents; project instructions about those '
+          'address the coordinator. Read a skill file only when the brief names its path.\n'
           '{writes}'
           'Hard limits: never push to main, merge, force-push, deploy, send customer-facing messages, '
           'or print or copy credentials. The coordinator integrates your branch.\n'
@@ -169,10 +178,12 @@ def bindings(project, provider, role):
     return chosen.get('model'), chosen.get('effort')
 
 
-def command(provider, mode, cwd, run, model, effort, session, resume, permission=None):
+def command(provider, mode, cwd, run, model, effort, session, resume, permission=None, lean=True):
     """Full-autonomy flags per CLI: no sandbox, no approvals. Returns (argv, stdin path or None).
 
     Isolation is the task worktree; read mode is a brief contract, not a tool restriction.
+    A lean worker skips the host's plugins, skills and MCP connectors: a scoped brief names its
+    resources by path, and the connectors roughly double the fixed token cost of every turn.
     """
     prompt = run / 'prompt.txt'
     if provider == 'codex':
@@ -180,6 +191,7 @@ def command(provider, mode, cwd, run, model, effort, session, resume, permission
         argv += ['--json', '--skip-git-repo-check', '-o', str(run / 'last-message.txt'),
                  '--dangerously-bypass-approvals-and-sandbox']
         argv += [] if resume else ['-C', str(cwd)]
+        argv += ['--disable', 'plugins', '--disable', 'apps'] if lean else []
         if model:
             argv += ['-m', model]
         if effort:
@@ -198,6 +210,7 @@ def command(provider, mode, cwd, run, model, effort, session, resume, permission
     argv = ['claude', '-p', '--output-format', 'stream-json', '--verbose']
     argv += ['--resume', resume] if resume else ['--session-id', session]
     argv += ['--permission-mode', permission] if permission else ['--dangerously-skip-permissions']
+    argv += ['--strict-mcp-config', '--disable-slash-commands'] if lean else []
     if model:
         argv += ['--model', model]
     if effort:
@@ -269,9 +282,32 @@ def stop_group(process, grace=5.0):
             continue
 
 
+def reap(previous):
+    """Stop a worker whose runner died; the next attempt must not share the worktree with it."""
+    pid = (previous or {}).get('pid')
+    if not pid or previous.get('state') in TERMINAL:
+        return
+    try:
+        # The recorded cwd tells this worker from an unrelated process that reused the PID.
+        if os.readlink(f'/proc/{pid}/cwd') == previous.get('cwd'):
+            os.killpg(pid, signal.SIGKILL)
+    except (OSError, ProcessLookupError):
+        pass
+
+
 def execute(args, project, resume=False):
     run = run_directory(project, args.task)
     status_path = run / 'status.json'
+    if resume and not status_path.is_file():
+        raise ValueError('nothing to resume: no recorded session for ' + args.task)
+    run.mkdir(parents=True, exist_ok=True)
+    os.chmod(run, 0o700)
+    lock = open(run / 'lock', 'w')
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        raise ValueError(f'task {args.task} is already running') from None
+    # Status is read under the lock so a second resume sees the attempt the first one recorded.
     previous = json.loads(status_path.read_text()) if status_path.is_file() else None
     if resume:
         if not previous or not previous.get('session_id'):
@@ -285,14 +321,7 @@ def execute(args, project, resume=False):
     text = brief.read_text()
     if not text.strip():
         raise ValueError('brief is empty: ' + str(brief))
-    run.mkdir(parents=True, exist_ok=True)
-    os.chmod(run, 0o700)
-    lock = open(run / 'lock', 'w')
-    try:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except OSError:
-        raise ValueError(f'task {args.task} is already running') from None
-
+    reap(previous)
     if resume:
         cwd, branch, base = Path(previous['cwd']), previous.get('branch'), previous.get('base')
         model, effort = args.model or previous.get('model'), args.effort or previous.get('effort')
@@ -325,15 +354,17 @@ def execute(args, project, resume=False):
         os.chmod(run / name, 0o600)
     if args.permission_mode and provider == 'codex':
         raise ValueError('--permission-mode applies to grok and claude; codex always runs with full access')
+    lean = not args.full_context if args.full_context is not None else (previous or {}).get('lean', True) if resume else True
     argv, stdin_path = command(provider, mode, cwd, run, model, effort, session, session if resume else None,
-                               args.permission_mode)
+                               args.permission_mode, lean)
     executable = shutil.which(os.environ.get(provider.upper() + '_BINARY') or argv[0])
     if not executable:
         raise ValueError(provider + ' CLI is not installed')
     argv[0] = executable
     limits = {key: getattr(args, key) if getattr(args, key) is not None else DEFAULTS[key] for key in DEFAULTS}
     status = {'schema_version': 1, 'task_id': args.task, 'provider': provider, 'mode': mode, 'state': 'starting',
-              'attempt': attempt, 'role': getattr(args, 'role', None) or (previous or {}).get('role'),
+              'attempt': attempt, 'attempts': history(previous),
+              'totals': None, 'lean': lean, 'role': getattr(args, 'role', None) or (previous or {}).get('role'),
               'model': model, 'effort': effort, 'session_id': session if provider != 'codex' or resume else None,
               'pid': None, 'runner_pid': os.getpid(), 'runner_start': start_identity(os.getpid()),
               'exit_code': None, 'cost_usd': None, 'usage': None, 'summary': None, 'error': None,
@@ -341,8 +372,14 @@ def execute(args, project, resume=False):
               'started_at': now(), 'ended_at': None, 'duration_s': None, 'limits': limits, 'argv': argv,
               'events': str(run / 'events.jsonl'), 'stderr': str(run / 'stderr.log'),
               'last_message': str(run / 'last-message.txt')}
+    final = run / 'last-message.txt'
+    if final.is_file() and status['attempts']:
+        # The earlier attempt's full answer stays readable beside its cost and duration.
+        kept = run / f'last-message.{status["attempts"][-1]["attempt"]}.txt'
+        final.replace(kept)
+        status['attempts'][-1]['last_message'] = str(kept)
+    final.unlink(missing_ok=True)
     save(status_path, status)
-    (run / 'last-message.txt').unlink(missing_ok=True)
 
     events = open(run / 'events.jsonl', 'a')
 
@@ -395,8 +432,11 @@ def execute(args, project, resume=False):
                 parser.feed(event)
             except ValueError:
                 events.write(json.dumps({'type': 'pstack.raw', 'line': line.rstrip('\n')[:2000]}) + '\n')
-            if status['state'] == 'starting' or parser.session != status['session_id']:
-                status.update(state='running', session_id=parser.session)
+            reported = (parser.cost, parser.usage) != (status['cost_usd'], status['usage'])
+            if status['state'] == 'starting' or parser.session != status['session_id'] or reported:
+                # Cost and usage are saved as reported, so a runner killed after the answer still accounts for it.
+                status.update(state='running', session_id=parser.session, cost_usd=parser.cost, usage=parser.usage,
+                              duration_s=round(clock - started, 1))
                 save(status_path, status)
         if not stop['state']:
             if not seen and limits['startup_timeout'] and clock - started > limits['startup_timeout']:
@@ -409,13 +449,22 @@ def execute(args, project, resume=False):
             log('stopping', reason=stop['state'])
             stop_group(process)
             break
+    while not stop['state']:
+        # A worker can close its output and keep running; the whole-run deadline still applies.
+        try:
+            process.wait(timeout=0.5)
+            break
+        except subprocess.TimeoutExpired:
+            if limits['timeout'] and time.monotonic() - started > limits['timeout']:
+                stop['state'] = 'timeout'
+                log('stopping', reason='timeout')
+                stop_group(process)
     code = process.wait()
     stop_group(process, grace=1.0)
     parser.flush()
     events.flush()
 
     message = parser.message
-    final = run / 'last-message.txt'
     if provider == 'codex' and final.is_file() and final.read_text().strip():
         message = final.read_text().strip()
     else:
@@ -431,11 +480,15 @@ def execute(args, project, resume=False):
         tail = (run / 'stderr.log').read_text(errors='replace').strip().splitlines()[-3:]
         error = parser.error or ('no successful terminal event' if code == 0 else ' | '.join(tail)[:400] or f'exit {code}')
     summary = message.strip()
-    if len(summary) > SUMMARY_LIMIT:
+    truncated = len(summary) > SUMMARY_LIMIT
+    if truncated:
         summary = summary[:SUMMARY_LIMIT].rstrip() + ' …'
     status.update(state=state, exit_code=code, session_id=parser.session, cost_usd=parser.cost, usage=parser.usage,
-                  summary=summary or None, error=error, ended_at=now(), duration_s=round(time.monotonic() - started, 1),
+                  summary=summary or None, summary_truncated=truncated, error=error, ended_at=now(),
+                  duration_s=round(time.monotonic() - started, 1),
                   diffstat=diffstat(cwd, base) if base and (branch or mode == 'write') else None)
+    status['attempts'].append({key: status.get(key) for key in ATTEMPT_KEYS})
+    status['totals'] = totals(status['attempts'])
     save(status_path, status)
     log('finished', state=state, exit_code=code)
     events.close()
@@ -443,10 +496,33 @@ def execute(args, project, resume=False):
     return EXIT.get(state, 1)
 
 
+def history(previous):
+    """Earlier attempts of a task; a status written before attempts were kept counts as one."""
+    if not previous:
+        return []
+    attempts = list(previous.get('attempts') or [])
+    if not any(entry.get('attempt') == previous.get('attempt') for entry in attempts):
+        entry = {key: previous.get(key) for key in ATTEMPT_KEYS}
+        if entry['state'] not in TERMINAL:
+            entry['state'] = 'lost'
+        attempts.append(entry)
+    return attempts
+
+
+def totals(attempts):
+    """Sums over every attempt; cost stays null when no attempt reported one."""
+    costs = [entry['cost_usd'] for entry in attempts if entry.get('cost_usd') is not None]
+    return {'attempts': len(attempts), 'cost_usd': round(sum(costs), 6) if costs else None,
+            'duration_s': round(sum(entry.get('duration_s') or 0 for entry in attempts), 1)}
+
+
 def receipt(status):
-    keys = ('task_id', 'provider', 'state', 'exit_code', 'model', 'effort', 'session_id', 'cost_usd', 'duration_s',
-            'summary', 'error', 'cwd', 'branch')
+    """One line for the coordinator: cost_usd and duration_s are this attempt, total_* cover the task."""
+    keys = ('task_id', 'provider', 'state', 'exit_code', 'model', 'effort', 'session_id', 'attempt', 'cost_usd',
+            'duration_s', 'summary', 'summary_truncated', 'last_message', 'error', 'cwd', 'branch')
     result = {key: status.get(key) for key in keys}
+    overall = status.get('totals') or {}
+    result.update(total_cost_usd=overall.get('cost_usd'), total_duration_s=overall.get('duration_s'))
     result['diffstat'] = (status.get('diffstat') or {}).get('summary')
     return result
 
@@ -523,6 +599,8 @@ def main(argv=None):
         sub.add_argument('--timeout', type=float, help='Whole-run deadline in seconds; 0 disables')
         sub.add_argument('--startup-timeout', type=float, help='Seconds allowed before the first event; 0 disables')
         sub.add_argument('--idle-timeout', type=float, help='Seconds allowed between events; 0 disables')
+        sub.add_argument('--full-context', action='store_true', default=None,
+                         help='Load the host plugins, skills and MCP connectors into the worker; default is lean')
 
     run = commands.add_parser('run', help='Start a worker and wait for its terminal receipt')
     run.add_argument('provider', choices=PROVIDERS)
@@ -549,12 +627,18 @@ def main(argv=None):
         if name == 'clean':
             sub.add_argument('--force', action='store_true', help='Discard uncommitted worker changes and the branch')
     commands.add_parser('doctor', help='Report installed CLIs and cached logins')
+    dispatch_policy.arguments(commands.add_parser('decide', help='Route one unit of work and log the decision'))
+    panel_divergence.arguments(commands.add_parser('divergence', help='Check panel candidates are independent and distinct'))
     args = parser.parse_args(argv)
     try:
         if args.action == 'doctor':
             print(json.dumps(doctor(), indent=2))
             return 0
         project = project_root(args.project)
+        if args.action == 'decide':
+            return dispatch_policy.main(args, project)
+        if args.action == 'divergence':
+            return panel_divergence.main(args, project)
         if args.action == 'run':
             return execute(args, project)
         if args.action == 'resume':

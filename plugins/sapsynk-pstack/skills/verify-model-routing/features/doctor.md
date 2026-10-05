@@ -20,3 +20,5 @@ A working end state identifies which options are ready for a live probe and whic
 ## Gotchas
 
 An installed binary or cached login is not live execution proof. Native Codex discovery does not make Grok/Claude native models. Grok response-only readiness does not establish file sandboxing or writable isolation.
+
+On a host that also runs Claude Code, this doctor reports Grok as `blocked: Grok inspect discovered unsupported plugins (...)`. Grok Build loads the user-scope plugins Claude Code installed, including pstack itself and the optional Sapsynk plugins, from `~/.claude/plugins`. Its `GROK_CLAUDE_*_ENABLED` switches cover skills, rules, agents, MCP servers and hooks but not plugins, and the request-file lane fails closed on any plugin. That is the intended verdict for the managed lane and it is not a Grok outage. On an owner-controlled Claude Code host the Grok lane is `scripts/pstack-run run grok`, so use `scripts/pstack-run doctor` for readiness and a `pstack-run` receipt as the live probe.

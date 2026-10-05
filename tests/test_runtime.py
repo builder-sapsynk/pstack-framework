@@ -308,6 +308,19 @@ else:
             self.assertEqual(receipt['status'], 'failed'); self.assertIn(key, receipt['error'])
             self.assertNotIn('providerEvents', receipt['artifacts'])
 
+    def test_claude_code_plugins_stay_blocked_and_the_error_names_them_and_the_runner_lane(self):
+        discovery = copy.deepcopy(self.inspect)
+        discovery['plugins'] = [{'name': 'sapsynk-pstack', 'scope': 'user', 'enabled': True,
+                                 'path': '/home/u/.pstack/framework/abc/plugins/sapsynk-pstack'},
+                                {'name': 'sapsynk-dyl', 'scope': 'user', 'path': '/home/u/.claude/plugins/cache/dyl'}]
+        with self.assertRaises(ValueError) as raised: r.inspect_grok(json.dumps(discovery))
+        message = str(raised.exception)
+        self.assertTrue(message.startswith('Grok inspect discovered unsupported plugins (sapsynk-dyl, sapsynk-pstack)'))
+        self.assertIn('scripts/pstack-run', message)
+        discovery['plugins'] = [{'name': 'other', 'path': '/opt/grok/plugins/other'}]
+        with self.assertRaises(ValueError) as raised: r.inspect_grok(json.dumps(discovery))
+        self.assertEqual(str(raised.exception), 'Grok inspect discovered unsupported plugins (other)')
+
     def test_actual_bundled_skill_shape_and_path_boundary(self):
         grok_home = self.root / 'grok-home'
         discovery = copy.deepcopy(self.inspect)

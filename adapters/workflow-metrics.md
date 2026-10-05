@@ -32,7 +32,7 @@ python3 "$PSTACK_PACKAGE/runtime/workflow_metrics.py" summary --workflow "$PSTAC
 python3 "$PSTACK_PACKAGE/runtime/workflow_metrics.py" summary --workflow "$PSTACK_WORKFLOW" --json
 ```
 
-`summary --import-receipt /absolute/receipt.json` imports before reducing and is repeatable. Receipt imports require a durable `job_id`. Safe metadata is copied; prompts, response text, credentials, environment variables, and `modelUsage` duplicates are excluded. The worker defaults to the job ID. To join runtime events and imports, use that same worker ID and attempt ID in both streams.
+`summary --import-receipt /absolute/receipt.json` imports before reducing and is repeatable. Receipt imports require a durable `job_id`. Runner status.json receipts are accepted. Safe metadata is copied; prompts, response text, credentials, environment variables, and `modelUsage` duplicates are excluded. The worker defaults to the job ID. To join runtime events and imports, use that same worker ID and attempt ID in both streams.
 
 `--cutoff` scopes replay to a fixed timestamp. `--manifest /absolute/manifest.json` reads `{"complete":true,"workers":["worker-a","worker-b"]}`. A manifest must declare the whole descendant set. Complete coverage requires exact worker membership and observed request, start, and terminal events for each attempt. A terminal receipt alone remains partial. Unknown manifests, omitted descendants, nonterminal workers, and missing lifecycle observations remain partial.
 

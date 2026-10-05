@@ -184,8 +184,11 @@ def normalize_runner_receipt(receipt):
     if receipt.get('duration_s') is not None:
         normalized['elapsedSeconds'] = receipt['duration_s']
     if isinstance(receipt.get('usage'), dict):
-        normalized['metrics'] = {'usage': receipt['usage']}
-    if status == 'failed' and isinstance(state, str) and state and 'failureCode' in METADATA:
+        usage = dict(receipt['usage'])
+        usage.setdefault('cache_read_input_tokens', usage.get('cached_input_tokens'))
+        usage.setdefault('cache_creation_input_tokens', usage.get('cache_write_input_tokens'))
+        normalized['metrics'] = {'usage': usage}
+    if status == 'failed':
         normalized['failureCode'] = state
     return normalized
 
@@ -214,7 +217,7 @@ def import_receipt(workflow, receipt, *, worker=None, parent_worker=None):
             metadata[target] = metrics[origin] / 1000
     if receipt.get('status') == 'timed-out':
         metadata['failureCode'] = 'timed-out'
-    elif 'failureCode' in receipt and 'failureCode' in METADATA:
+    elif 'failureCode' in receipt:
         metadata['failureCode'] = receipt['failureCode']
     usage = metrics.get('usage')
     if isinstance(usage, dict):

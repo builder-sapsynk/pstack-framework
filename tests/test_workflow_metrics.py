@@ -246,6 +246,14 @@ class WorkflowMetricsTests(unittest.TestCase):
         self.assertEqual(summary['tokens']['samples'], 1)
         self.assertIsNone(summary['workers']['runner-task']['metadata']['resolved']['model'])
 
+    def test_runner_codex_receipt_maps_cache_counters(self):
+        m.import_receipt(self.workflow, {'task_id': 'codex-task', 'provider': 'codex', 'state': 'succeeded',
+                                         'usage': {'input_tokens': 50, 'output_tokens': 5,
+                                                   'cached_input_tokens': 20, 'cache_write_input_tokens': 3}})
+        tokens = m.summarize(self.workflow)['tokens']
+        self.assertEqual(tokens['cacheRead'], 20)
+        self.assertEqual(tokens['cacheWrite'], 3)
+
     def test_runner_killed_receipt_counts_cancelled(self):
         m.import_receipt(self.workflow, {'task_id': 'killed-task', 'state': 'killed', 'duration_s': 3.0})
         summary = m.summarize(self.workflow)

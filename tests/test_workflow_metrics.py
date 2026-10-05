@@ -228,6 +228,35 @@ class WorkflowMetricsTests(unittest.TestCase):
         self.assertIn('scope observed partial', result.stdout)
         self.assertTrue(list((self.workflow / 'events').glob('*.jsonl')))
 
+    def test_runner_succeeded_receipt_imports_elapsed_and_usage(self):
+        receipt = {'task_id': 'runner-task', 'provider': 'grok', 'model': 'grok-4.7', 'effort': 'high',
+                   'state': 'succeeded', 'duration_s': 12.5, 'cost_usd': 0.02,
+                   'usage': {'input_tokens': 111, 'output_tokens': 22, 'cache_read_input_tokens': 33,
+                             'cache_creation_input_tokens': 4, 'reasoning_tokens': 7}}
+        first = m.import_receipt(self.workflow, receipt)
+        second = m.import_receipt(self.workflow, receipt)
+        self.assertEqual(first, second)
+        summary = m.summarize(self.workflow)
+        self.assertEqual(summary['counts'], dict(spawned=1, active=0, requested=0, complete=1, failed=0, cancelled=0))
+        self.assertEqual(summary['workerElapsedSeconds'], 12.5)
+        self.assertEqual(summary['tokens']['input'], 111)
+        self.assertEqual(summary['tokens']['output'], 22)
+        self.assertEqual(summary['tokens']['cacheRead'], 33)
+        self.assertEqual(summary['tokens']['cacheWrite'], 4)
+        self.assertEqual(summary['tokens']['samples'], 1)
+        self.assertIsNone(summary['workers']['runner-task']['metadata']['resolved']['model'])
+
+    def test_runner_killed_receipt_counts_cancelled(self):
+        m.import_receipt(self.workflow, {'task_id': 'killed-task', 'state': 'killed', 'duration_s': 3.0})
+        summary = m.summarize(self.workflow)
+        self.assertEqual(summary['counts'], dict(spawned=1, active=0, requested=0, complete=0, failed=0, cancelled=1))
+
+    def test_runner_stalled_receipt_counts_failed(self):
+        m.import_receipt(self.workflow, {'task_id': 'stalled-task', 'state': 'stalled', 'duration_s': 9.0})
+        summary = m.summarize(self.workflow)
+        self.assertEqual(summary['counts'], dict(spawned=1, active=0, requested=0, complete=0, failed=1, cancelled=0))
+        self.assertEqual(summary['workers']['stalled-task']['metadata']['failureCode'], 'stalled')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -166,12 +166,40 @@ def read_events(workflow, cutoff=None):
     return sorted(found.values(), key=lambda event: (event['observedAt'], event['workerId'], event['seq'], event['eventId'])), cutoff
 
 
+def normalize_runner_receipt(receipt):
+    """Map a pstack-run status.json object onto the request-file receipt shape."""
+    if (not isinstance(receipt, dict) or receipt.get('job_id') or
+            not isinstance(receipt.get('task_id'), str) or 'state' not in receipt):
+        return receipt
+    state = receipt.get('state')
+    status = {'running': 'running', 'succeeded': 'complete', 'killed': 'cancelled',
+              'timeout': 'timed-out', 'failed': 'failed', 'startup_timeout': 'failed',
+              'stalled': 'failed', 'lost': 'failed'}.get(state)
+    normalized = {'job_id': receipt['task_id']}
+    if status is not None:
+        normalized['status'] = status
+    for key in ('provider', 'model', 'effort'):
+        if receipt.get(key) is not None:
+            normalized[key] = receipt[key]
+    if receipt.get('duration_s') is not None:
+        normalized['elapsedSeconds'] = receipt['duration_s']
+    if isinstance(receipt.get('usage'), dict):
+        usage = dict(receipt['usage'])
+        usage.setdefault('cache_read_input_tokens', usage.get('cached_input_tokens'))
+        usage.setdefault('cache_creation_input_tokens', usage.get('cache_write_input_tokens'))
+        normalized['metrics'] = {'usage': usage}
+    if status == 'failed':
+        normalized['failureCode'] = state
+    return normalized
+
+
 def import_receipt(workflow, receipt, *, worker=None, parent_worker=None):
     """Import safe terminal metadata, deduplicated by durable job and status."""
     reference = None
     if not isinstance(receipt, dict):
         reference = str(Path(receipt).resolve())
         receipt = json.loads(Path(receipt).read_text())
+    receipt = normalize_runner_receipt(receipt)
     job_id = receipt.get('job_id')
     if not isinstance(job_id, str) or not job_id:
         raise ValueError('receipt requires stable job_id')
@@ -189,6 +217,8 @@ def import_receipt(workflow, receipt, *, worker=None, parent_worker=None):
             metadata[target] = metrics[origin] / 1000
     if receipt.get('status') == 'timed-out':
         metadata['failureCode'] = 'timed-out'
+    elif 'failureCode' in receipt:
+        metadata['failureCode'] = receipt['failureCode']
     usage = metrics.get('usage')
     if isinstance(usage, dict):
         definition = metrics.get('inputTokenDefinition', receipt.get('inputTokenDefinition', 'unknown'))

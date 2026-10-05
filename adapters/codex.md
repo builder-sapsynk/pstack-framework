@@ -14,6 +14,8 @@ The package's native marketplace and cloud plugin expose all upstream skills. Su
 
 Use terminal tools for the bundled CLI controls and available browser/computer-use/project harnesses for UI controls. A real unavailable surface remains blocked. Discover scheduling tools rather than copying `/loop`; preserve user notification intent and stay quiet on unchanged monitors. A configured schedule is not a delivery test.
 
+Apply the [dispatch policy](dispatch-policy.md) before spawning: work under its inline thresholds stays with the coordinator, and the decision is logged with `pstack-run decide` or the same facts in the coordinator's record.
+
 Use gh when no real native PR creation tool exists. Attach created/reviewed PRs through the host's attachment tool where required. Installing pstack and GitHub authentication do not authorize merges. Host rules for external messages, publishing and production writes continue to apply.
 
 Grok can use its native file and command tools through the [managed-host adapter](grok-native.md) when the actual outer execution boundary is qualified. It remains an external worker process. The native spawn schema cannot take a Grok model. Preserve durable jobs and resume completed sessions for follow-up; the portable provider contract persists with the plugin rather than a chat-only claim.

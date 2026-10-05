@@ -86,10 +86,12 @@ def claude_package(executable='claude', plugin=CLAUDE_PLUGIN):
     cli = shutil.which(executable)
     if not cli:
         raise RuntimeError('Claude Code CLI unavailable; cannot verify the active package')
-    matches = [entry for entry in claude_query(cli, 'list') if entry.get('id') == plugin and entry.get('enabled')]
-    if len(matches) != 1:
-        raise ValueError('exactly one enabled installed ' + plugin + ' plugin is required in Claude Code')
-    return pathlib.Path(matches[0].get('readFromFolder') or matches[0]['installPath'])
+    # A project that enables the plugin adds a project-scope entry beside the user one.
+    folders = {entry.get('readFromFolder') or entry['installPath'] for entry in claude_query(cli, 'list')
+               if entry.get('id') == plugin and entry.get('enabled')}
+    if len(folders) != 1:
+        raise ValueError('exactly one enabled installed ' + plugin + ' package is required in Claude Code')
+    return pathlib.Path(folders.pop())
 
 
 def claude_marketplace(cli, name, checkout, plugins):

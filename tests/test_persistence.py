@@ -270,14 +270,16 @@ path.write_text(json.dumps(state))
         checkout = self.pinned_checkout('pinned', 'd' * 64)
         identity = checkout / 'plugins/sapsynk-pstack/framework.json'
         identity.write_text(json.dumps({'version': VERSION, 'source_digest': 'd' * 64, 'upstream_commit': '23e4138daa01c42d4969f7a5465f82704e64f798'}))
-        state.write_text(json.dumps({'markets': [], 'calls': [], 'plugins': [
-            {'id': 'sapsynk-pstack@sapsynk', 'enabled': True, 'installPath': '/stale-cache', 'readFromFolder': str(identity.parent)}]}))
+        # Claude Code lists a user-scope and a project-scope entry once the project enables the plugin.
+        entry = {'id': 'sapsynk-pstack@sapsynk', 'enabled': True, 'installPath': '/stale-cache', 'readFromFolder': str(identity.parent)}
+        state.write_text(json.dumps({'markets': [], 'calls': [], 'plugins': [{**entry, 'scope': 'user'}, {**entry, 'scope': 'project'}]}))
         self.claude_fixture(state)
         env = {**os.environ, 'PATH': str(self.root) + os.pathsep + os.environ['PATH'], 'CLAUDECODE': '1'}
         env.pop('PSTACK_HOST', None)
         script = self.root / 'scripts/bootstrap-pstack'
         result = subprocess.run([sys.executable, str(script), '--check'], capture_output=True, text=True, env=env)
         self.assertEqual((result.returncode, result.stdout.strip()), (0, 'Installed project framework content pin verified (claude-code)'))
+        self.assertEqual(claude_package(str(self.root / 'claude')), identity.parent)
         identity.write_text(json.dumps({'version': VERSION, 'source_digest': 'e' * 64}))
         self.assertNotEqual(subprocess.run([sys.executable, str(script), '--check'], capture_output=True, env=env).returncode, 0)
 

@@ -8,7 +8,7 @@ Host: owner-controlled Debian 13, Claude Code 2.1.289, Codex CLI 0.160.0, Grok B
 
 One smoke run from the vao-1.1 project used a single brief for three parallel candidates: a native Claude subagent in a harness worktree, `pstack-run run codex` (gpt-6.1-sol, high, 32.0 s) and `pstack-run run grok --role "feature, refactoring"` (grok-4.7, medium, 23.4 s, 0.042 USD reported). Each ended `succeeded`, changed only the assigned file and ran the project docs verifier. `resume` was exercised live for Codex and Grok on a scratch repository, and one external Claude worker ran there.
 
-Not verified: the named `sapsynk-pstack:pstack-worker` subagent in a live session, because the plugin was installed during the verifying session and agents load at session start; the run used a general-purpose subagent given the same persona file. Whether `disable-model-invocation` lowers session context was not measured. Grok has no OS sandbox on this lane. Codex reports no cost.
+A fresh headless session in the project reported the `sapsynk-pstack:pstack-worker` agent type, `pstack-run` on PATH from the pinned checkout, the imported project instructions, and only the entry and companion skills as model-invocable. Not verified: a dispatch through that named agent, because the plugin was installed during the verifying session; the smoke used a general-purpose subagent given the same persona file. Project settings were ignored until the workspace trust dialog is accepted. Grok has no OS sandbox on this lane. Codex reports no cost.
 
 ## 0.1.2 — 2026-10-03
 

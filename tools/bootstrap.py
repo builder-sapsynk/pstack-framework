@@ -58,12 +58,13 @@ def check_package(package):
 def active_package(host):
     if host == 'claude-code':
         result = subprocess.run(['claude', 'plugin', 'list', '--json'], check=True, capture_output=True, text=True)
-        matches = [entry for entry in json.loads(result.stdout)
-                   if entry.get('id') == lock.get('claude_plugin') and entry.get('enabled')]
-        if len(matches) != 1:
+        # A directory marketplace is loaded in place rather than from the cache copy. A project
+        # that enables the plugin adds a project-scope entry beside the user one.
+        folders = {entry.get('readFromFolder') or entry['installPath'] for entry in json.loads(result.stdout)
+                   if entry.get('id') == lock.get('claude_plugin') and entry.get('enabled')}
+        if len(folders) != 1:
             sys.exit('Cannot identify the active Claude Code package; run scripts/bootstrap-pstack --host claude-code')
-        # A directory marketplace is loaded in place rather than from the cache copy.
-        return Path(matches[0].get('readFromFolder') or matches[0]['installPath'])
+        return Path(folders.pop())
     result = subprocess.run(['codex', 'plugin', 'list', '--json'], check=True, capture_output=True, text=True)
     matches = [entry for entry in json.loads(result.stdout).get('installed', [])
                if entry.get('pluginId') == lock['plugin'] and entry.get('installed') and entry.get('enabled')]

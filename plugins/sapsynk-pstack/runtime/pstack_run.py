@@ -25,12 +25,29 @@ EXIT = {'succeeded': 0, 'timeout': 124, 'startup_timeout': 124, 'stalled': 124, 
 DEFAULTS = {'startup_timeout': 120.0, 'idle_timeout': 900.0, 'timeout': 3600.0}
 SUMMARY_LIMIT = 600
 HEADER = ('You are pstack worker `{task}` running as an external {provider} CLI agent in {mode} mode.\n'
-          'Your working directory is {where}. Stay inside it.\n'
+          'Your working directory is {where}.\n'
+          'You run unattended with full autonomy on a dedicated machine: no sandbox, no approval prompts, '
+          'full shell, tools and network. Use whatever the task needs.\n'
           '{writes}'
-          'Do not commit, push, open or merge pull requests, deploy, or message anyone. '
-          'Do not activate a framework router, spawn other providers, or change the task.\n'
-          'End with a final message of at most 10 lines: outcome, files touched, '
+          'Hard limits: never push to main, merge, force-push, deploy, send customer-facing messages, '
+          'or print or copy credentials. The coordinator integrates your branch.\n'
+          'End with a final message of at most 10 lines: outcome, files touched, commits, '
           'verification you ran with its result, and open issues.\n\n--- BRIEF ---\n')
+PRE_COMMIT = ('#!/bin/sh\n# pstack worker guard: commits stay on the task branch.\n'
+              'branch=$(git symbolic-ref --quiet --short HEAD || echo detached)\n'
+              'if [ "$branch" != "$PSTACK_TASK_BRANCH" ]; then\n'
+              '  echo "pstack: commit only on $PSTACK_TASK_BRANCH, not $branch" >&2\n  exit 1\nfi\n')
+PRE_PUSH = ('#!/bin/sh\n# pstack worker guard: no push to main, no deletion, no force-push.\n'
+            'input=$(cat)\n'
+            'deny() { echo "pstack: refused $1" >&2; exit 1; }\n'
+            'while read -r local_ref local_sha remote_ref remote_sha; do\n'
+            '  [ -n "$remote_ref" ] || continue\n'
+            '  case "$remote_ref" in refs/heads/main|refs/heads/master) deny "push to $remote_ref";; esac\n'
+            '  case "$local_sha" in *[!0]*) ;; *) deny "deletion of $remote_ref";; esac\n'
+            '  case "$remote_sha" in *[!0]*) git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null '
+            '|| deny "force-push to $remote_ref";; esac\n'
+            'done <<EOF\n$input\nEOF\n')
+CHAIN = 'if [ -x "{hook}" ]; then printf \'%s\\n\' "${{input:-}}" | "{hook}" "$@" || exit $?; fi\n'
 
 
 def now():
@@ -58,12 +75,14 @@ def start_identity(pid):
         return None
 
 
-def environment(provider):
-    # Proxy, trust and host settings stay. Credential variables of other services and
-    # GitHub tokens are removed; each CLI still reads its own on-disk login.
-    allowed = KEYS[provider]
-    env = {k: v for k, v in os.environ.items() if k in allowed or not (
-        any(s in k.upper() for s in ('TOKEN', 'SECRET', 'PASSWORD', 'API_KEY')))}
+def environment(provider, hooks=None, branch=None):
+    # The worker inherits the host environment; only other model vendors' keys are withheld.
+    foreign = set().union(*KEYS.values()) - KEYS[provider]
+    env = {k: v for k, v in os.environ.items() if k not in foreign}
+    if hooks:
+        count = int(env.get('GIT_CONFIG_COUNT') or 0)
+        env.update({'GIT_CONFIG_COUNT': str(count + 1), f'GIT_CONFIG_KEY_{count}': 'core.hooksPath',
+                    f'GIT_CONFIG_VALUE_{count}': str(hooks), 'PSTACK_TASK_BRANCH': branch or ''})
     if provider == 'grok':
         env['GROK_DISABLE_AUTOUPDATER'] = '1'
         for vendor in ('CURSOR', 'CLAUDE'):
@@ -108,6 +127,22 @@ def ensure_worktree(project, task, base):
     return path, branch, commit
 
 
+def guard_hooks(run, cwd, branch):
+    """Per-run Git hooks holding the cheap guardrails; the project's own hooks still run."""
+    hooks = run / 'hooks'
+    shutil.rmtree(hooks, ignore_errors=True)
+    hooks.mkdir()
+    own = git(cwd, 'rev-parse', '--path-format=absolute', '--git-path', 'hooks', check=False)
+    guards = {'pre-push': PRE_PUSH, **({'pre-commit': PRE_COMMIT} if branch else {})}
+    for existing in sorted(Path(own).iterdir()) if own and Path(own).is_dir() else []:
+        if existing.name not in guards and not existing.name.endswith('.sample'):
+            (hooks / existing.name).symlink_to(existing)
+    for name, body in guards.items():
+        (hooks / name).write_text(body + CHAIN.format(hook=Path(own) / name if own else ''))
+        (hooks / name).chmod(0o755)
+    return hooks
+
+
 def diffstat(cwd, base):
     """Committed plus uncommitted change against the task base, untracked files included."""
     try:
@@ -135,27 +170,26 @@ def bindings(project, provider, role):
 
 
 def command(provider, mode, cwd, run, model, effort, session, resume, permission=None):
-    """Explicit permission flags per CLI. Returns (argv, stdin path or None)."""
+    """Full-autonomy flags per CLI: no sandbox, no approvals. Returns (argv, stdin path or None).
+
+    Isolation is the task worktree; read mode is a brief contract, not a tool restriction.
+    """
     prompt = run / 'prompt.txt'
     if provider == 'codex':
-        # OS sandbox: writes confined to the worktree, network off unless the task asks.
         argv = ['codex', 'exec'] + (['resume', resume] if resume else [])
-        argv += ['--json', '--skip-git-repo-check', '-o', str(run / 'last-message.txt')]
-        sandbox = 'workspace-write' if mode == 'write' else 'read-only'
-        argv += ['-c', f'sandbox_mode="{sandbox}"'] if resume else ['--sandbox', sandbox, '-C', str(cwd)]
+        argv += ['--json', '--skip-git-repo-check', '-o', str(run / 'last-message.txt'),
+                 '--dangerously-bypass-approvals-and-sandbox']
+        argv += [] if resume else ['-C', str(cwd)]
         if model:
             argv += ['-m', model]
         if effort:
             argv += ['-c', f'model_reasoning_effort="{effort}"']
         return argv + ['-'], prompt
     if provider == 'grok':
-        # Tool permissions, not an OS sandbox. Headless dontAsk cancels every terminal call
-        # whatever the allow rules say, so the reviewed automatic mode is the default.
         argv = ['grok', '--prompt-file', str(prompt), '--output-format', 'streaming-json', '--cwd', str(cwd),
-                '--permission-mode', permission or 'auto', '--no-subagents']
+                '--permission-mode', permission or 'bypassPermissions']
+        argv += [] if permission else ['--always-approve']
         argv += ['--resume', resume] if resume else ['--session-id', session]
-        if mode == 'read':
-            argv += ['--disallowed-tools', 'write,search_replace']
         if model:
             argv += ['-m', model]
         if effort:
@@ -163,11 +197,7 @@ def command(provider, mode, cwd, run, model, effort, session, resume, permission
         return argv, None
     argv = ['claude', '-p', '--output-format', 'stream-json', '--verbose']
     argv += ['--resume', resume] if resume else ['--session-id', session]
-    if mode == 'write':
-        argv += ['--permission-mode', permission or 'acceptEdits', '--allowedTools', 'Read,Glob,Grep,Edit,Write,Bash']
-    else:
-        argv += ['--permission-mode', permission or 'dontAsk', '--allowedTools', 'Read,Glob,Grep']
-    argv += ['--disallowedTools', 'Agent,Task']
+    argv += ['--permission-mode', permission] if permission else ['--dangerously-skip-permissions']
     if model:
         argv += ['--model', model]
     if effort:
@@ -282,14 +312,19 @@ def execute(args, project, resume=False):
         raise ValueError('working directory is gone: ' + str(cwd))
 
     where = f'a dedicated git worktree on branch `{branch}`' if branch else f'`{cwd}`'
-    writes = ('Leave your changes uncommitted in the working tree.\n' if mode == 'write'
-              else 'This is a read-only task: do not create, edit or delete files.\n')
+    if mode == 'read':
+        writes = 'This is a read-only task: do not edit tracked files or commit.\n'
+    elif branch:
+        writes = (f'Commit your finished work on `{branch}` in this worktree, and only there. '
+                  'Do not touch other branches or worktrees.\n')
+    else:
+        writes = 'Leave your changes uncommitted in this directory.\n'
     (run / 'brief.md').write_text(text)
     (run / 'prompt.txt').write_text(HEADER.format(task=args.task, provider=provider, mode=mode, where=where, writes=writes) + text)
     for name in ('brief.md', 'prompt.txt'):
         os.chmod(run / name, 0o600)
     if args.permission_mode and provider == 'codex':
-        raise ValueError('--permission-mode applies to grok and claude; codex is governed by its sandbox')
+        raise ValueError('--permission-mode applies to grok and claude; codex always runs with full access')
     argv, stdin_path = command(provider, mode, cwd, run, model, effort, session, session if resume else None,
                                args.permission_mode)
     executable = shutil.which(os.environ.get(provider.upper() + '_BINARY') or argv[0])
@@ -316,7 +351,8 @@ def execute(args, project, resume=False):
         events.flush()
 
     started = time.monotonic()
-    process = subprocess.Popen(argv, cwd=cwd, env=environment(provider), start_new_session=True,
+    process = subprocess.Popen(argv, cwd=cwd, env=environment(provider, guard_hooks(run, cwd, branch), branch),
+                               start_new_session=True,
                                stdin=open(stdin_path) if stdin_path else subprocess.DEVNULL,
                                stdout=subprocess.PIPE, stderr=open(run / 'stderr.log', 'a'), text=True, errors='replace')
     status.update(pid=process.pid)
@@ -482,8 +518,8 @@ def main(argv=None):
         sub.add_argument('--mode', choices=MODES)
         sub.add_argument('--model')
         sub.add_argument('--effort')
-        sub.add_argument('--permission-mode', choices=('auto', 'acceptEdits', 'dontAsk', 'plan', 'default'),
-                         help='Override the grok or claude permission mode; bypass modes are not offered')
+        sub.add_argument('--permission-mode', choices=('bypassPermissions', 'auto', 'acceptEdits', 'dontAsk', 'plan', 'default'),
+                         help='Narrow the grok or claude permission mode for one run; the default is full bypass')
         sub.add_argument('--timeout', type=float, help='Whole-run deadline in seconds; 0 disables')
         sub.add_argument('--startup-timeout', type=float, help='Seconds allowed before the first event; 0 disables')
         sub.add_argument('--idle-timeout', type=float, help='Seconds allowed between events; 0 disables')

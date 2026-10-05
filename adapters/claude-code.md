@@ -6,7 +6,7 @@ Claude Code is a qualified coordinator. The same pstack skills, role labels and 
 
 The plugin is `sapsynk-pstack@sapsynk`, served from this repository's `.claude-plugin/marketplace.json`. A project's `scripts/bootstrap-pstack --host claude-code` clones the exact locked revision to `~/.pstack/framework/<revision>` (override with `PSTACK_HOME`), validates it, registers that directory as the `sapsynk` marketplace and installs the plugin at user scope. Claude Code loads a directory marketplace in place, so that checkout is the active package and must stay unmodified. `scripts/bootstrap-pstack --check` compares its `framework.json` with the project lock.
 
-The project commits `CLAUDE.md`, which imports `AGENTS.md`, and `.claude/settings.json`, which enables the plugin, allows the runner and runs the pin check at session start. A plugin installed during a session is available from the next session. Project settings and the session-start hook apply only after the owner has accepted Claude Code's trust dialog for the project once. One user installation serves one pin at a time; bootstrap again when switching to a project with a different pin.
+The project commits `CLAUDE.md`, which imports `AGENTS.md`, and `.claude/settings.json`, which enables the plugin, sets the permission mode and runs the pin check at session start. A plugin installed during a session is available from the next session. Project settings and the session-start hook apply only after the owner has accepted Claude Code's trust dialog for the project once. One user installation serves one pin at a time; bootstrap again when switching to a project with a different pin.
 
 Upstream leaf skills carry `disable-model-invocation: true` so a session does not load 49 descriptions. Read a leaf by path from the package root when the router or a playbook names it. `poteto-mode`, `setup-pstack` and the `sapsynk-pstack` entry stay model-invocable.
 
@@ -48,11 +48,27 @@ The last stdout line of each run is the receipt: `task_id`, `provider`, `state`,
 
 `state` is `succeeded` only when the CLI exited 0, reported a successful terminal event and returned a nonempty final message. `failed`, `killed`, `timeout`, `startup_timeout`, `stalled` and `lost` are never reviewer votes and never trigger a silent switch to another provider. Codex does not report cost; `cost_usd` stays null. A receipt proves the worker ran, not that its change is correct: inspect the diff and run the project verifier yourself.
 
-Workers leave changes uncommitted in `../.pstack-worktrees/<project>/<task-id>` on branch `pstack/<task-id>`. Integrate with `scripts/pstack-run diff <task-id> --patch | git apply --index`, then `scripts/pstack-run clean <task-id> --force`. Follow up in the same session with `scripts/pstack-run resume <task-id> <brief-file>`; stop one with `scripts/pstack-run kill <task-id>`.
+Workers commit in `../.pstack-worktrees/<project>/<task-id>` on branch `pstack/<task-id>`. The coordinator integrates: `git merge --no-ff pstack/<task-id>` or a cherry-pick onto the feature branch (`scripts/pstack-run diff <task-id> --patch | git apply --index` also carries uncommitted leftovers), then `scripts/pstack-run clean <task-id> --force`. Follow up in the same session with `scripts/pstack-run resume <task-id> <brief-file>`; stop one with `scripts/pstack-run kill <task-id>`.
 
-## Limits on this host
+## Autonomy policy
 
-Codex runs in its own OS sandbox: writes stay in the worktree, network is off, and it cannot commit because the worktree's Git metadata is outside the sandbox. Grok Build runs with `--permission-mode auto` and no OS sandbox; its worktree is file ownership, not confinement. Its headless `dontAsk` mode and its inner sandbox both cancel every terminal command here. The external Claude profile uses `acceptEdits` with a fixed tool list. No worker receives bypass or always-approve flags. Worktrees do not isolate credentials, processes or ports.
+This host is a dedicated machine the owner controls. Workers get full autonomy: no OS sandbox, no approval prompts, every tool, full network. Isolation is one Git worktree and branch per task. Worktrees do not isolate credentials, processes or ports.
+
+| Worker | Mode |
+| --- | --- |
+| Codex CLI | `codex exec --dangerously-bypass-approvals-and-sandbox` |
+| Grok Build CLI | `--permission-mode bypassPermissions --always-approve` |
+| Claude CLI (`pstack-run run claude`) | `--dangerously-skip-permissions` |
+| Native `pstack-worker` | inherits the session; the project sets `permissions.defaultMode: bypassPermissions` |
+
+Hard guardrails, for every worker and the coordinator:
+
+- A worker commits only on its own task branch in its own worktree. The coordinator integrates worker branches.
+- No push to main, no merge of a pull request, no force-push. The owner's Grok Bot merges pull requests to main; agents never do.
+- No deploy and no customer-facing message.
+- No printing or copying of credentials.
+
+The runner states these in every worker header and installs per-run `pre-commit` and `pre-push` Git hooks for the branch and push rules. A plugin agent cannot set its own permission mode, so the native worker's mode comes from the project's `.claude/settings.json`.
 
 Claude Code created a native subagent's worktree from the default branch, not from the coordinator's feature HEAD. Name the base commit in a native worker's brief and have it fast-forward first, or use `scripts/pstack-run run claude`, whose worktree starts from `--base` or HEAD. Native worktrees live under `.claude/worktrees/` and are removed with `git worktree remove`.
 

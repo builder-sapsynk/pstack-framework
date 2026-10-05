@@ -79,7 +79,9 @@ class RunnerTests(unittest.TestCase):
         self.assertFalse((self.project / 'made.txt').exists())
         self.assertEqual(status['usage'], {'input_tokens': 5, 'output_tokens': 2})
         argv = status['argv']
-        self.assertEqual(argv[argv.index('--sandbox') + 1], 'workspace-write')
+        self.assertIn('--dangerously-bypass-approvals-and-sandbox', argv)
+        self.assertNotIn('--sandbox', argv)
+        self.assertIn('Commit your finished work on `pstack/task-1`', (self.project / '.pstack/runs/task-1/prompt.txt').read_text())
         self.assertIn('model_reasoning_effort="low"', argv)
         events = [json.loads(line)['type'] for line in Path(status['events']).read_text().splitlines()]
         self.assertEqual(events[0], 'pstack.started')
@@ -104,7 +106,8 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(status['error'], 'no successful terminal event')
         self.assertIsNone(status['branch'])
         argv = status['argv']
-        self.assertEqual(argv[argv.index('--sandbox') + 1], 'read-only')
+        self.assertIn('--dangerously-bypass-approvals-and-sandbox', argv)
+        self.assertIn('read-only task', (self.project / '.pstack/runs/reader/prompt.txt').read_text())
         self.assertIn('pstack.raw', Path(status['events']).read_text())
 
     def test_startup_watchdog_stops_a_silent_worker(self):
@@ -142,6 +145,32 @@ class RunnerTests(unittest.TestCase):
         result = self.invoke(CODEX_OK, 'run', 'codex', 'wrong', str(self.brief), '--role', 'bug-fix')
         self.assertEqual(result.returncode, 2)
         self.assertIn('no silent fallback', result.stderr)
+    def git(self, cwd, *arguments, env=None):
+        return subprocess.run(['git', '-C', str(cwd), *arguments], capture_output=True, text=True, env=env)
+
+    def test_hooks_confine_commits_to_the_task_branch_and_refuse_main_and_force_pushes(self):
+        remote = self.root / 'remote.git'
+        self.git(self.root, 'init', '-q', '--bare', str(remote))
+        self.git(self.project, 'remote', 'add', 'origin', str(remote))
+        marker = self.project / '.git/hooks/pre-commit'
+        marker.write_text('#!/bin/sh\ntouch "$(git rev-parse --git-common-dir)/project-hook-ran"\n')
+        marker.chmod(0o755)
+        self.assertEqual(self.invoke(CODEX_OK, 'run', 'codex', 'guard', str(self.brief)).returncode, 0)
+        status = self.status('guard')
+        worktree = Path(status['cwd'])
+        env = pstack_run.environment('codex', self.project / '.pstack/runs/guard/hooks', status['branch'])
+        self.git(worktree, 'add', '-A', env=env)
+        self.assertEqual(self.git(worktree, 'commit', '-qm', 'task', env=env).returncode, 0)
+        self.assertTrue((self.project / '.git/project-hook-ran').is_file())
+        (self.project / 'b.txt').write_text('b\n')
+        self.git(self.project, 'add', 'b.txt', env=env)
+        refused = self.git(self.project, 'commit', '-qm', 'elsewhere', env=env)
+        self.assertIn('commit only on pstack/guard', refused.stderr)
+        self.assertEqual(self.git(worktree, 'push', '-q', 'origin', 'pstack/guard', env=env).returncode, 0)
+        self.assertIn('refused push to refs/heads/main', self.git(worktree, 'push', 'origin', 'pstack/guard:main', env=env).stderr)
+        self.git(worktree, 'commit', '-q', '--amend', '-m', 'rewritten', env=env)
+        self.assertIn('refused force-push', self.git(worktree, 'push', '--force', 'origin', 'pstack/guard', env=env).stderr)
+        self.assertIn('refused deletion', self.git(worktree, 'push', 'origin', ':pstack/guard', env=env).stderr)
 
 
 class ParserTests(unittest.TestCase):
@@ -163,12 +192,26 @@ class ParserTests(unittest.TestCase):
         parser.feed({'type': 'result', 'subtype': 'success', 'is_error': False, 'result': 'ok', 'total_cost_usd': 0.1, 'session_id': 'c1'})
         self.assertEqual((parser.session, parser.message, parser.cost, parser.terminal), ('c1', 'ok', 0.1, True))
         run = Path('/run')
-        for provider, mode in (('grok', 'write'), ('grok', 'read'), ('claude', 'write'), ('claude', 'read'), ('codex', 'write')):
-            argv, _ = pstack_run.command(provider, mode, Path('/w'), run, None, None, 'sid', None)
-            self.assertFalse([part for part in argv if 'bypass' in part.lower() or part in ('--always-approve', '--yolo')])
-        argv, _ = pstack_run.command('grok', 'read', Path('/w'), run, 'grok-4.7', 'low', 'sid', None)
-        self.assertEqual(argv[argv.index('--disallowed-tools') + 1], 'write,search_replace')
-        self.assertEqual(argv[argv.index('--permission-mode') + 1], 'auto')
+        bypass = {'codex': '--dangerously-bypass-approvals-and-sandbox', 'grok': '--always-approve',
+                  'claude': '--dangerously-skip-permissions'}
+        for provider in bypass:
+            for mode in ('write', 'read'):
+                argv, _ = pstack_run.command(provider, mode, Path('/w'), run, None, None, 'sid', None)
+                self.assertIn(bypass[provider], argv)
+                self.assertFalse({'--sandbox', '--disallowed-tools', '--disallowedTools', '--allowedTools', '--no-subagents'} & set(argv))
+        argv, _ = pstack_run.command('grok', 'write', Path('/w'), run, 'grok-4.7', 'low', 'sid', None)
+        self.assertEqual(argv[argv.index('--permission-mode') + 1], 'bypassPermissions')
+        argv, _ = pstack_run.command('claude', 'write', Path('/w'), run, None, None, 'sid', None, 'plan')
+        self.assertEqual(argv[argv.index('--permission-mode') + 1], 'plan')
+        self.assertNotIn('--dangerously-skip-permissions', argv)
+
+    def test_environment_keeps_host_credentials_and_withholds_other_vendors(self):
+        os.environ.update(GH_TOKEN='g', XAI_API_KEY='x', OPENAI_API_KEY='o')
+        self.addCleanup(lambda: [os.environ.pop(key) for key in ('GH_TOKEN', 'XAI_API_KEY', 'OPENAI_API_KEY')])
+        env = pstack_run.environment('codex', Path('/h'), 'pstack/t')
+        self.assertEqual((env.get('GH_TOKEN'), env.get('OPENAI_API_KEY'), env.get('XAI_API_KEY')), ('g', 'o', None))
+        count = int(env['GIT_CONFIG_COUNT']) - 1
+        self.assertEqual((env[f'GIT_CONFIG_KEY_{count}'], env[f'GIT_CONFIG_VALUE_{count}']), ('core.hooksPath', '/h'))
 
 
 if __name__ == '__main__':

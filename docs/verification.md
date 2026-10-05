@@ -4,7 +4,7 @@
 
 Host: owner-controlled Debian 13, Claude Code 2.1.289, Codex CLI 0.160.0, Grok Build 1.0.46.
 
-128 framework tests pass, including fixture tests for the worker runner's lifecycle, watchdogs, kill, resume and permission flags, the Claude Code install path and the locked optional-plugin restore. `claude plugin validate` accepts the marketplace and the plugin. Claude Code lists 57 skills and 3 agents for `sapsynk-pstack@sapsynk`; Codex installs 0.2.0 from the same source and both `scripts/bootstrap-pstack --check` hosts verify.
+130 framework tests pass, including fixture tests for the worker runner's lifecycle, watchdogs, kill, resume, full-autonomy flags and guard hooks, the Claude Code install path and the locked optional-plugin restore. `claude plugin validate` accepts the marketplace and the plugin. Claude Code lists 57 skills and 3 agents for `sapsynk-pstack@sapsynk`; Codex installs 0.2.0 from the same source and both `scripts/bootstrap-pstack --check` hosts verify.
 
 One smoke run from the vao-1.1 project used a single brief for three parallel candidates: a native Claude subagent in a harness worktree, `pstack-run run codex` (gpt-6.1-sol, high, 32.0 s) and `pstack-run run grok --role "feature, refactoring"` (grok-4.7, medium, 23.4 s, 0.042 USD reported). Each ended `succeeded`, changed only the assigned file and ran the project docs verifier. `resume` was exercised live for Codex and Grok on a scratch repository, and one external Claude worker ran there.
 

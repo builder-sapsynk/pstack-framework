@@ -496,6 +496,7 @@
     "claude-code": {
       "coordinator": "claude",
       "runner": "scripts/pstack-run",
+      "autonomy": "full: no sandbox or approval prompts, worktree per task; guardrails in adapters/claude-code.md",
       "dispatch": {
         "claude": "Agent tool, sapsynk-pstack:pstack-worker, worktree isolation",
         "inherit-parent": "Agent tool, sapsynk-pstack:pstack-worker, worktree isolation",

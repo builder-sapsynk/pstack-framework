@@ -52,7 +52,7 @@ scripts/pstack-run doctor
 
 `run` blocks until the worker is terminal. Start each worker as its own background task; stdout carries one `pstack.started` line and one final receipt line. A write task commits on its own branch in the worktree `../.pstack-worktrees/<project>/<task-id>` on branch `pstack/<task-id>`, based on `--base` or HEAD. A read task runs in the project unless `--worktree` or `--cwd` says otherwise. `PSTACK_WORKTREE_ROOT` moves the worktree directory. A task id is reused only through `resume` or an explicit `run --force`.
 
-The run directory `.pstack/runs/<task-id>/` holds `brief.md`, the submitted `prompt.txt`, `events.jsonl`, `stderr.log`, `last-message.txt` and `status.json`. The event log is the provider's own JSON lines plus `pstack.*` lifecycle events; non-JSON output is wrapped as `pstack.raw`. `status.json` records `state`, `session_id`, `pid`, `exit_code`, `cost_usd`, `usage`, a summary capped at 600 characters, the diffstat against the task base, model, effort, limits and the exact argv.
+The run directory `.pstack/runs/<task-id>/` holds `brief.md`, the submitted `prompt.txt`, `events.jsonl`, `stderr.log`, `last-message.txt` and `status.json`. The event log is the provider's own JSON lines plus `pstack.*` lifecycle events; non-JSON output is wrapped as `pstack.raw`. `status.json` records `state`, `session_id`, `pid`, `exit_code`, `cost_usd`, `usage`, a summary capped at 2000 characters with `summary_truncated`, per-attempt `attempts` history with `totals` across resumes, the diffstat against the task base, model, effort, limits and the exact argv.
 
 | Provider | Write mode | Read mode | Session |
 | --- | --- | --- | --- |

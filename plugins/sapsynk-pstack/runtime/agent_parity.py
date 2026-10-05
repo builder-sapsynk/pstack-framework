@@ -12,6 +12,12 @@ STATUSES = ('verified', 'partial', 'blocked', 'unknown')
 BINDING = ('provider', 'transport', 'model', 'effort', 'host', 'harness')
 CORE_TOOLS = {'read': 'read_text', 'edit': 'write_text', 'verify': 'check'}
 NATIVE_TOOLS = {'read': {'read_file'}, 'edit': {'search_replace', 'write'}, 'verify': {'run_terminal_command'}}
+# Tool names in a pstack-run event log, per provider CLI.
+RUNNER_TOOLS = {'grok': NATIVE_TOOLS,
+                'claude': {'read': {'Read'}, 'edit': {'Edit', 'Write'}, 'verify': {'Bash'}},
+                'codex': {'read': {'command_execution'}, 'edit': {'file_change'}, 'verify': {'command_execution'}}}
+RUNNER_STATES = {'succeeded': 'complete', 'failed': 'failed', 'lost': 'failed', 'killed': 'cancelled',
+                 'timeout': 'timed-out', 'startup_timeout': 'timed-out', 'stalled': 'timed-out'}
 
 
 def fail(message):
@@ -107,6 +113,54 @@ def grok_observation(records, receipt):
     return targets
 
 
+def runner_observation(status, records):
+    """Read a pstack-run status.json and its event log as a terminal receipt plus the tools actually used."""
+    provider, model = status.get('provider'), status.get('model')
+    if provider not in RUNNER_TOOLS or status.get('state') not in RUNNER_STATES:
+        fail('runner receipt needs a known provider and a terminal state')
+    starts = [index for index, item in enumerate(records) if item.get('type') == 'pstack.started']
+    # The log holds every attempt; only the receipt's own attempt is evidence for it.
+    records = records[starts[-1]:] if starts else records
+    served, targets, calls = set(), set(), {}
+    for item in records:
+        kind = item.get('type')
+        if provider == 'grok':
+            if kind == 'tool_call':
+                calls[item.get('toolCallId')] = item.get('toolName')
+            if kind == 'tool_call_update' and item.get('status') in ('failed', 'error', 'cancelled'):
+                # Grok marks only terminal commands `completed`; file tools just stop updating.
+                calls.pop(item.get('toolCallId'), None)
+            if kind == 'end':
+                served.update(item.get('modelUsage') or {})
+        elif provider == 'claude' and kind in ('assistant', 'user'):
+            message = item.get('message') or {}
+            if kind == 'assistant':
+                served.add(message.get('model'))
+            for block in message.get('content') or []:
+                if not isinstance(block, dict):
+                    continue
+                if block.get('type') == 'tool_use':
+                    calls[block.get('id')] = block.get('name')
+                if block.get('type') == 'tool_result' and not block.get('is_error'):
+                    targets.add(calls.get(block.get('tool_use_id')))
+        elif provider == 'codex' and kind == 'item.completed':
+            done = item.get('item') or {}
+            if done.get('status') == 'completed' and done.get('exit_code') in (None, 0):
+                targets.add(done.get('type'))
+    if provider == 'grok':
+        targets = set(calls.values())
+    targets.discard(None)
+    argv = status.get('argv') or []
+    # Codex reports no served model; the pinned argv is its evidence, as in the request-file lane.
+    pinned = provider == 'codex' and '-m' in argv and argv[argv.index('-m') + 1] == model
+    verified = bool(model) and (pinned or any(isinstance(name, str) and (name == model or name.startswith(model + '-')) for name in served))
+    complete = status['state'] == 'succeeded'
+    receipt = {'provider': provider, 'transport': 'pstack-run', 'model': model, 'effort': status.get('effort'),
+               'status': RUNNER_STATES[status['state']], 'authVerified': complete, 'modelVerified': complete and verified,
+               'confinement': 'worktree', 'filesystemIsolation': 'off'}
+    return receipt, targets
+
+
 def broker_observation(path):
     records = native_records(path)
     successful = set()
@@ -162,6 +216,9 @@ def summarize(document, base=Path('.'), allow_unit_fixtures=False):
         receipt, check = read_json(paths['receipt']), read_json(paths['verification'])
         if not isinstance(receipt, dict) or not isinstance(check, dict):
             fail('receipt and independent check must be JSON objects')
+        runner = 'task_id' in receipt and 'state' in receipt
+        if runner:
+            receipt, runner_targets = runner_observation(receipt, native_records(paths['native']))
         for key in ('provider', 'transport', 'model', 'effort'):
             if receipt.get(key) != binding[key]:
                 fail('receipt binding mismatch: ' + key)
@@ -183,7 +240,7 @@ def summarize(document, base=Path('.'), allow_unit_fixtures=False):
         if check['workVerified'] and (not complete or not paths['artifact'].stat().st_size or check['criticalViolation']):
             fail('verified work requires complete nonempty artifact without critical violation')
         records = native_records(paths['native'])
-        targets = grok_observation(records, receipt) if binding['provider'] == 'grok' else set()
+        targets = runner_targets if runner else grok_observation(records, receipt) if binding['provider'] == 'grok' else set()
         broker_calls = broker_observation(paths['broker']) if 'broker' in paths else set()
         capabilities = check.get('capabilities')
         if not isinstance(capabilities, dict) or set(capabilities) - set(CAPABILITIES):
@@ -203,11 +260,13 @@ def summarize(document, base=Path('.'), allow_unit_fixtures=False):
                 tool = CORE_TOOLS[name]
                 direct = receipt.get('confinement') == 'managed-host'
                 matched = bool(targets & NATIVE_TOOLS[name]) if direct else tool in broker_calls and any(target.endswith('__' + tool) for target in targets)
-                if binding['provider'] == 'grok' and not matched:
-                    fail(name + ' requires matching genuine native tool use and successful broker call')
+                if runner:
+                    matched = bool(targets & RUNNER_TOOLS[binding['provider']][name])
+                if (runner or binding['provider'] == 'grok') and not matched:
+                    fail(name + ' requires matching genuine native tool use' + ('' if runner else ' and successful broker call'))
                 if not check['workVerified'] or not {'native', 'artifact'} <= set(observations):
                     fail(name + ' requires independently checked actual work and native/artifact observations')
-                if binding['provider'] == 'grok' and not direct and 'broker' not in observations:
+                if binding['provider'] == 'grok' and not direct and not runner and 'broker' not in observations:
                     fail(name + ' requires broker observation')
             if item['status'] == 'verified' and name == 'os-isolation' and receipt.get('filesystemIsolation') in ('unavailable', 'off'):
                 fail('OS isolation claim contradicts terminal receipt')

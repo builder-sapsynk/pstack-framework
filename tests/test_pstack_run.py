@@ -19,6 +19,8 @@ resumed = 'resume' in sys.argv
 print(json.dumps({'type': 'thread.started', 'thread_id': 'thread-1'}), flush=True)
 pathlib.Path('made.txt').write_text('resumed' if resumed else 'made')
 text = 'follow-up done' if resumed else 'done: ' + str('BRIEF' in prompt)
+if 'LONG' in prompt:
+    text = 'x' * 2500
 print(json.dumps({'type': 'item.completed', 'item': {'type': 'agent_message', 'text': text}}))
 if '-o' in sys.argv:
     pathlib.Path(sys.argv[sys.argv.index('-o') + 1]).write_text(text)
@@ -30,6 +32,9 @@ print(json.dumps({'type': 'thread.started', 'thread_id': 'thread-2'}))
 print('not json')
 '''
 SILENT = '#!/bin/sh\nexec sleep 60\n'
+CLOSES_OUTPUT_THEN_HANGS = '#!/bin/sh\necho \'{"type":"thread.started","thread_id":"thread-4"}\'\nexec >&- 2>&-\nexec sleep 60\n'
+PAID_THEN_HANGS = ('#!/bin/sh\necho \'{"type":"thread.started","thread_id":"thread-5"}\'\n'
+                   'echo \'{"type":"turn.completed","usage":{"input_tokens":9}}\'\nexec sleep 60\n')
 CHATTY_THEN_HANGS = '#!/bin/sh\necho \'{"type":"thread.started","thread_id":"thread-3"}\'\nexec sleep 60\n'
 
 
@@ -81,7 +86,9 @@ class RunnerTests(unittest.TestCase):
         argv = status['argv']
         self.assertIn('--dangerously-bypass-approvals-and-sandbox', argv)
         self.assertNotIn('--sandbox', argv)
-        self.assertIn('Commit your finished work on `pstack/task-1`', (self.project / '.pstack/runs/task-1/prompt.txt').read_text())
+        prompt = (self.project / '.pstack/runs/task-1/prompt.txt').read_text()
+        self.assertIn('Commit your finished work on `pstack/task-1`', prompt)
+        self.assertIn('You are a worker, not the coordinator.', prompt)
         self.assertIn('model_reasoning_effort="low"', argv)
         events = [json.loads(line)['type'] for line in Path(status['events']).read_text().splitlines()]
         self.assertEqual(events[0], 'pstack.started')
@@ -94,10 +101,39 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(recorded[:3], ['exec', 'resume', 'thread-1'])
         status = self.status('task-1')
         self.assertEqual((status['attempt'], status['summary'], status['model']), (2, 'follow-up done', 'm1'))
+        self.assertEqual([(entry['attempt'], entry['state'], entry['usage']) for entry in status['attempts']],
+                         [(1, 'succeeded', {'input_tokens': 5, 'output_tokens': 2}), (2, 'succeeded', {'input_tokens': 5, 'output_tokens': 2})])
+        self.assertEqual(status['totals']['attempts'], 2)
+        self.assertEqual(status['totals']['duration_s'], round(sum(entry['duration_s'] for entry in status['attempts']), 1))
+        self.assertEqual(Path(status['attempts'][0]['last_message']).read_text(), 'done: True')
+        resumed = json.loads(result.stdout.splitlines()[-1])
+        self.assertEqual((resumed['attempt'], resumed['total_duration_s']), (2, status['totals']['duration_s']))
+        self.assertGreaterEqual(resumed['total_duration_s'], resumed['duration_s'])
         patch = self.invoke(CODEX_OK, 'diff', 'task-1', '--patch').stdout
         self.assertIn('+resumed', patch)
         self.assertEqual(self.invoke(CODEX_OK, 'clean', 'task-1', '--force').returncode, 0)
         self.assertFalse(worktree.exists())
+
+    def test_totals_sum_cost_over_attempts_and_upgrade_a_status_without_history(self):
+        self.assertEqual(pstack_run.totals([{'cost_usd': 0.21, 'duration_s': 420.0}, {'cost_usd': 0.05, 'duration_s': 30.5}]),
+                         {'attempts': 2, 'cost_usd': 0.26, 'duration_s': 450.5})
+        self.assertIsNone(pstack_run.totals([{'cost_usd': None, 'duration_s': 3.0}])['cost_usd'])
+        legacy = {'attempt': 1, 'state': 'succeeded', 'cost_usd': 0.21, 'duration_s': 420.0}
+        self.assertEqual([(entry['attempt'], entry['cost_usd']) for entry in pstack_run.history(legacy)], [(1, 0.21)])
+        self.assertEqual(pstack_run.history({'attempt': 1, 'state': 'running'})[0]['state'], 'lost')
+        self.assertEqual(pstack_run.history(None), [])
+
+    def test_long_summary_is_cut_at_the_limit_and_points_to_the_full_message(self):
+        self.brief.write_text('LONG answer please.\n')
+        result = self.invoke(CODEX_OK, 'run', 'codex', 'long', str(self.brief), '--mode', 'read')
+        receipt = json.loads(result.stdout.splitlines()[-1])
+        self.assertTrue(receipt['summary_truncated'])
+        self.assertEqual(len(receipt['summary']), pstack_run.SUMMARY_LIMIT + 2)
+        self.assertEqual(Path(receipt['last_message']).read_text().strip(), 'x' * 2500)
+        self.brief.write_text('Short.\n')
+        short = json.loads(self.invoke(CODEX_OK, 'run', 'codex', 'short', str(self.brief), '--mode', 'read').stdout.splitlines()[-1])
+        self.assertFalse(short['summary_truncated'])
+        self.assertGreaterEqual(pstack_run.SUMMARY_LIMIT, 2000)
 
     def test_read_task_runs_in_project_without_worktree(self):
         result = self.invoke(CODEX_NO_TERMINAL, 'run', 'codex', 'reader', str(self.brief), '--mode', 'read')
@@ -132,6 +168,56 @@ class RunnerTests(unittest.TestCase):
         runner.stdout.close()
         runner.stderr.close()
         self.assertIsNone(pstack_run.start_identity(self.status('victim')['pid']))
+
+    def test_worker_that_closes_output_and_hangs_still_meets_the_deadline(self):
+        result = self.invoke(CLOSES_OUTPUT_THEN_HANGS, 'run', 'codex', 'mute', str(self.brief), '--timeout', '2', '--idle-timeout', '0')
+        self.assertEqual((result.returncode, self.status('mute')['state']), (124, 'timeout'))
+        self.assertIsNone(pstack_run.start_identity(self.status('mute')['pid']))
+
+    def test_runner_killed_after_the_answer_keeps_usage_and_the_orphan_is_reaped_on_the_next_run(self):
+        runner = self.invoke(PAID_THEN_HANGS, 'run', 'codex', 'orphan', str(self.brief), wait=False)
+        self.addCleanup(runner.kill)
+        path = self.project / '.pstack/runs/orphan/status.json'
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline and not (path.is_file() and self.status('orphan').get('usage')):
+            time.sleep(0.1)
+        worker = self.status('orphan')['pid']
+        runner.kill()
+        runner.wait(timeout=10)
+        runner.stdout.close()
+        runner.stderr.close()
+        self.assertIsNotNone(pstack_run.start_identity(worker))
+        self.addCleanup(lambda: pstack_run.reap({'pid': worker, 'state': 'running', 'cwd': self.status('orphan')['cwd']}))
+        result = self.invoke(CODEX_OK, 'run', 'codex', 'orphan', str(self.brief), '--force')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and pstack_run.start_identity(worker) is not None \
+                and Path(f'/proc/{worker}/stat').read_text().rsplit(')', 1)[1].split()[0] != 'Z':
+            time.sleep(0.1)
+        status = self.status('orphan')
+        self.assertEqual([(entry['attempt'], entry['state'], entry['usage']) for entry in status['attempts']],
+                         [(1, 'lost', {'input_tokens': 9}), (2, 'succeeded', {'input_tokens': 5, 'output_tokens': 2})])
+        self.assertEqual(status['totals']['attempts'], 2)
+
+    def test_second_resume_waits_out_by_refusal_and_never_overwrites_a_running_attempt(self):
+        self.assertEqual(self.invoke(CODEX_OK, 'run', 'codex', 'busy', str(self.brief)).returncode, 0)
+        first = self.invoke(CHATTY_THEN_HANGS, 'resume', 'busy', str(self.brief), wait=False)
+        self.addCleanup(first.kill)
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline and self.status('busy')['attempt'] != 2:
+            time.sleep(0.1)
+        second = self.invoke(CODEX_OK, 'resume', 'busy', str(self.brief))
+        self.assertEqual(second.returncode, 2)
+        self.assertIn('already running', second.stderr)
+        self.assertEqual(self.status('busy')['attempt'], 2)
+        self.invoke(CODEX_OK, 'kill', 'busy')
+        first.wait(timeout=20)
+        first.stdout.close()
+        first.stderr.close()
+        status = self.status('busy')
+        self.assertEqual([(entry['attempt'], entry['state']) for entry in status['attempts']], [(1, 'succeeded'), (2, 'killed')])
+        self.assertEqual(self.invoke(CODEX_OK, 'resume', 'nothing-here', str(self.brief)).returncode, 2)
+        self.assertFalse((self.project / '.pstack/runs/nothing-here').exists())
 
     def test_role_binding_supplies_model_and_never_crosses_providers(self):
         config = self.project / '.pstack/config.json'
@@ -199,6 +285,13 @@ class ParserTests(unittest.TestCase):
                 argv, _ = pstack_run.command(provider, mode, Path('/w'), run, None, None, 'sid', None)
                 self.assertIn(bypass[provider], argv)
                 self.assertFalse({'--sandbox', '--disallowed-tools', '--disallowedTools', '--allowedTools', '--no-subagents'} & set(argv))
+        lean = {'codex': ['--disable', 'plugins', '--disable', 'apps'], 'claude': ['--strict-mcp-config', '--disable-slash-commands']}
+        for provider, flags in lean.items():
+            for resume in (None, 'sid'):
+                argv, _ = pstack_run.command(provider, 'write', Path('/w'), run, None, None, 'sid', resume)
+                self.assertEqual([flag for flag in argv if flag in flags], flags)
+                argv, _ = pstack_run.command(provider, 'write', Path('/w'), run, None, None, 'sid', resume, lean=False)
+                self.assertFalse(set(flags) - {'--disable'} & set(argv))
         argv, _ = pstack_run.command('grok', 'write', Path('/w'), run, 'grok-4.7', 'low', 'sid', None)
         self.assertEqual(argv[argv.index('--permission-mode') + 1], 'bypassPermissions')
         argv, _ = pstack_run.command('claude', 'write', Path('/w'), run, None, None, 'sid', None, 'plan')

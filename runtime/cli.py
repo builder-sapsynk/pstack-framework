@@ -390,13 +390,24 @@ def grok_catalog(output):
     return models
 
 
+def plugin_note(data):
+    """Name the plugins and where Grok found them; Claude Code's own installs are the usual source."""
+    entries = [entry for entry in data.get('plugins') or [] if isinstance(entry, dict)]
+    names = ', '.join(sorted(str(entry.get('name')) for entry in entries)) or 'unreadable entries'
+    shared = any('/.claude/' in str(entry.get('path')) or '/.pstack/' in str(entry.get('path')) for entry in entries)
+    return f' ({names})' + ('; Grok Build loads the plugins Claude Code installed on this host, so this request-file lane '
+                            'stays closed here. Use scripts/pstack-run and `pstack-run doctor` on an owner-controlled host'
+                            if shared else '')
+
+
 def inspect_grok(output, grok_home=None, dialect=None):
     data = json.loads(output)
     if not isinstance(data, dict):
         raise ValueError('Grok inspect must be an object')
     for key in ('hooks', 'mcpServers', 'projectInstructions', 'plugins'):
         if data.get(key) != []:
-            raise ValueError(f'Grok inspect discovered unsupported {key}')
+            raise ValueError(f'Grok inspect discovered unsupported {key}' + plugin_note(data) if key == 'plugins' else
+                             f'Grok inspect discovered unsupported {key}')
     bundled_root = (Path(grok_home or os.environ.get('GROK_HOME') or Path.home() / '.grok') / 'bundled' / 'skills').resolve()
     for key in ('skills', 'agents'):
         entries = data.get(key)

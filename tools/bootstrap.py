@@ -144,7 +144,8 @@ AGENTS_BLOCK = ('Use sapsynk-pstack as this project engineering framework. Read 
                 'Resolve roles from .pstack/config.json and retain actual worker receipts; a configured route is not proof of dispatch.\n'
                 'One host has one active version: bootstrap this project when switching from a different content pin.\n'
                 'Fresh environments: run scripts/bootstrap-pstack to restore the exact framework revision.\n'
-                'Keep repository-local commit identity unless the user explicitly changes it.')
+                'Keep repository-local commit identity unless the user explicitly changes it.\n'
+                'Follow the pinned adapters/dispatch-policy.md: do trivial work inline, log the decision, and keep verification and the no-main rules.')
 
 CLAUDE_BLOCK = ('@AGENTS.md\n\n'
                 'Claude Code coordinates pstack in this project. AGENTS.md above is the shared policy for every host.\n'
@@ -154,9 +155,11 @@ CLAUDE_BLOCK = ('@AGENTS.md\n\n'
                 'Before substantive work invoke the `sapsynk-pstack:sapsynk-pstack` skill and read `adapters/claude-code.md`\n'
                 'under the directory printed by `scripts/bootstrap-pstack --print-package`.\n\n'
                 'Resolve each role from `.pstack/config.json` and its `host_bindings.claude-code` map, then dispatch:\n\n'
-                '- Claude and `inherit-parent` roles: the Agent tool with `sapsynk-pstack:pstack-worker` (own worktree).\n'
+                '- `inherit-parent` roles and Claude roles with transport `native`: the Agent tool with `sapsynk-pstack:pstack-worker` (own worktree). Claude roles with transport `claude-code`: `scripts/pstack-run run claude <task-id> <brief-file> --role "<role>"`.\n'
                 '- Grok and Codex roles: `scripts/pstack-run run <grok|codex> <task-id> <brief-file> --role "<role>"`,\n'
                 '  each as its own background Bash task so every worker reports one completion.\n\n'
+                'Before dispatch run `scripts/pstack-run decide "<unit>" ...` and follow `adapters/dispatch-policy.md`: trivial or\n'
+                'read-only one-step work runs inline or in a cheap native subagent, and the decision is logged.\n\n'
                 'Start independent workers in one message. Read only each receipt line and `scripts/pstack-run diff <task-id>`;\n'
                 'open a worker event log only to diagnose a failure. A failed or missing receipt is never a passing vote.')
 

@@ -253,6 +253,17 @@ path.write_text(json.dumps(state))
         text = (self.root / 'CLAUDE.md').read_text()
         self.assertTrue(text.startswith('Local notes.\n'))
         self.assertEqual(text.count('@AGENTS.md'), 1)
+        # The rewritten block carries every lane the config can route: a re-pin once dropped the runner lane.
+        self.assertIn('Claude roles with transport `claude-code`: `scripts/pstack-run run claude', text)
+        self.assertIn('Claude roles with transport `native`: the Agent tool', text)
+        self.assertIn('scripts/pstack-run decide', text)
+        self.assertIn('dispatch-policy.md', (self.root / 'AGENTS.md').read_text())
+        defaults = json.loads((Path(__file__).resolve().parents[1] / 'config/defaults.json').read_text())['host_bindings']['claude-code']['dispatch']['claude']
+        self.assertIn('transport claude-code: scripts/pstack-run run claude', defaults)
+        adapter = (Path(__file__).resolve().parents[1] / 'adapters/claude-code.md').read_text()
+        self.assertIn('transport `claude-code` run as Claude CLI workers through the runner', adapter)
+        self.assertIn('last-message.txt', adapter)
+        self.assertNotIn('`claude` bindings and `inherit-parent` aliases run as native subagents', adapter)
         runner = self.root / 'scripts/pstack-run'
         self.assertTrue(os.access(runner, os.X_OK))
         self.assertEqual(json.loads((self.root / '.pstack/framework.lock.json').read_text())['claude_plugin'], 'sapsynk-pstack@sapsynk')

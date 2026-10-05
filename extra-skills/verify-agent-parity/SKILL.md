@@ -29,6 +29,8 @@ Write a private JSON request with provider `grok`, discovered model `grok-4.7`, 
 python3 "$PSTACK_PACKAGE/runtime/cli.py" run --request "$PSTACK_REQUEST"
 ```
 
+On an owner-controlled host the worker lane is `scripts/pstack-run`, and the request-file doctor reports Grok blocked wherever Claude Code's plugins are installed. Drive `scripts/pstack-run run <provider> <task-id> <brief>` on the fixture project there, follow up with `resume`, and use each task's `status.json` as the receipt and `events.jsonl` as the native evidence with binding transport `pstack-run`. The helper reads that status as a terminal receipt, takes served-model evidence from the event log (Codex from its pinned argv) and requires the provider's real read, edit and command tool events for a verified capability. That lane has no sandbox, so `os-isolation` is never verified on it.
+
 Retain the emitted job ID and host terminal handle. Drain the actual terminal result. Inspect native init inventory, served model, successful tool calls/results, actual disk mutation and command exit/output. Independently rerun the frozen check through the host. Confirm main fixture files stayed unchanged while the worker's files changed.
 
 Use the emitted absolute job path for `status`, `checkpoint` and `cancel`. A follow-up request with `resume_job` set to a completed job preserves its provider/model/cwd/mode and native session. Ask for prior context and rerun the check. Confirm the same native session, new durable job and real tool execution. Resume is not live native messaging. Exercise live cancellation only on a job you launched and verify the owned provider/command processes are gone. Remote API termination remains unknown unless the provider exposes evidence.

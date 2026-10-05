@@ -23,7 +23,7 @@ Run the read-only installation/authentication preflight.
 python3 "$PSTACK_PACKAGE/runtime/cli.py" doctor --project "$PSTACK_PROJECT" --json
 ```
 
-Inspect every provider's JSON status and version. Doctor can return a nonzero exit while reporting the individual provider checks. A ready preflight establishes installation/authentication readiness, not completed work. If discovery or auth is unavailable, report it before attempting a drive. Reuse the current project's verifier when one exists.
+On an owner-controlled Claude Code host the worker lane is the project's `scripts/pstack-run`, so run `scripts/pstack-run doctor` as well; there the request-file doctor reports Grok blocked by Claude Code's plugins, as [the doctor feature](features/doctor.md) explains. Inspect every provider's JSON status and version. Doctor can return a nonzero exit while reporting the individual provider checks. A ready preflight establishes installation/authentication readiness, not completed work. If discovery or auth is unavailable, report it before attempting a drive. Reuse the current project's verifier when one exists.
 
 ## Drive
 

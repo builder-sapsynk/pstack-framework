@@ -498,7 +498,7 @@
       "runner": "scripts/pstack-run",
       "autonomy": "full: no sandbox or approval prompts, worktree per task; guardrails in adapters/claude-code.md",
       "dispatch": {
-        "claude": "Agent tool, sapsynk-pstack:pstack-worker, worktree isolation",
+        "claude": "transport claude-code: scripts/pstack-run run claude (exact model and effort); transport native: Agent tool, sapsynk-pstack:pstack-worker, worktree isolation",
         "inherit-parent": "Agent tool, sapsynk-pstack:pstack-worker, worktree isolation",
         "grok": "scripts/pstack-run run grok",
         "codex": "scripts/pstack-run run codex; transport native has no native child on this host"

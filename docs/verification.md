@@ -1,6 +1,16 @@
-# Release verification — 2026-10-03
+# Release verification
 
-## Current release: 0.1.2
+## 0.2.0, Claude Code host — 2026-10-05
+
+Host: owner-controlled Debian 13, Claude Code 2.1.289, Codex CLI 0.160.0, Grok Build 1.0.46.
+
+130 framework tests pass, including fixture tests for the worker runner's lifecycle, watchdogs, kill, resume, full-autonomy flags and guard hooks, the Claude Code install path and the locked optional-plugin restore. `claude plugin validate` accepts the marketplace and the plugin. Claude Code lists 57 skills and 3 agents for `sapsynk-pstack@sapsynk`; Codex installs 0.2.0 from the same source and both `scripts/bootstrap-pstack --check` hosts verify.
+
+One smoke run from the vao-1.1 project used a single brief for three parallel candidates: a native Claude subagent in a harness worktree, `pstack-run run codex` (gpt-6.1-sol, high, 32.0 s) and `pstack-run run grok --role "feature, refactoring"` (grok-4.7, medium, 23.4 s, 0.042 USD reported). Each ended `succeeded`, changed only the assigned file and ran the project docs verifier. `resume` was exercised live for Codex and Grok on a scratch repository, and one external Claude worker ran there.
+
+A fresh headless session in the project reported the `sapsynk-pstack:pstack-worker` agent type, `pstack-run` on PATH from the pinned checkout, the imported project instructions, and only the entry and companion skills as model-invocable. Not verified: a dispatch through that named agent, because the plugin was installed during the verifying session; the smoke used a general-purpose subagent given the same persona file. Project settings were ignored until the workspace trust dialog is accepted. Grok has no OS sandbox on this lane. Codex reports no cost.
+
+## 0.1.2 — 2026-10-03
 
 Published private source: https://github.com/builder-sapsynk/pstack-framework. Project content pin: `6f8245cab6c13a9ff26e838016e7d42dea84d681`, semantic digest `3a8b44d405f7025e2e70cf43e6ba0d50daef0853677ad2fb1b71809b3e305f67`. Git refs and GitHub's commit API both verified this source publication and the requested commit identity.
 

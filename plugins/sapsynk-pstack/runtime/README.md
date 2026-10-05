@@ -35,3 +35,37 @@ Optional `resume_job` addresses a completed owned native job, preserves validate
 Cancellation retains descendant PID/start identities through TERM/KILL escalation and bounded pipe draining, including detached command descendants. Partial native stdout/stderr survives timeout or cancellation. A nonexecuting orphan zombie can remain until the host reaps it; this is distinct from a running process. Remote model API cancellation is unverified.
 
 The broad task lane is not activated for this shared cloud host. Its approval reviewer rejected unrestricted launches despite explicit owner authorization. Cloud internet access is already unrestricted. Official [Agent approvals and security](https://developers.openai.com/codex/agent-approvals-security) distinguishes user-reviewed approvals from automatic review and managed constraints. Changing a brief or a local config file cannot override the active host policy. A separate isolated native-tool proof succeeded, but no container or ACP adapter was adopted as the project default. Preserve the direct CLI preference and require a permitted host launch before promotion.
+
+## Local worker runner
+
+`pstack_run.py` is the worker path on an owner-controlled host. Projects call it through `scripts/pstack-run`, which resolves the pinned package first. It is separate from the request-file runtime above and does not use its dialects or host-boundary declaration.
+
+```sh
+scripts/pstack-run run <codex|grok|claude> <task-id> <brief-file> [--role "<role>"] [--mode write|read]
+scripts/pstack-run resume <task-id> <brief-file>
+scripts/pstack-run status [<task-id>] [--full]
+scripts/pstack-run diff <task-id> [--patch]
+scripts/pstack-run kill <task-id>
+scripts/pstack-run clean <task-id> [--force]
+scripts/pstack-run doctor
+```
+
+`run` blocks until the worker is terminal. Start each worker as its own background task; stdout carries one `pstack.started` line and one final receipt line. A write task commits on its own branch in the worktree `../.pstack-worktrees/<project>/<task-id>` on branch `pstack/<task-id>`, based on `--base` or HEAD. A read task runs in the project unless `--worktree` or `--cwd` says otherwise. `PSTACK_WORKTREE_ROOT` moves the worktree directory. A task id is reused only through `resume` or an explicit `run --force`.
+
+The run directory `.pstack/runs/<task-id>/` holds `brief.md`, the submitted `prompt.txt`, `events.jsonl`, `stderr.log`, `last-message.txt` and `status.json`. The event log is the provider's own JSON lines plus `pstack.*` lifecycle events; non-JSON output is wrapped as `pstack.raw`. `status.json` records `state`, `session_id`, `pid`, `exit_code`, `cost_usd`, `usage`, a summary capped at 600 characters, the diffstat against the task base, model, effort, limits and the exact argv.
+
+| Provider | Write mode | Read mode | Session |
+| --- | --- | --- | --- |
+| codex | `exec --json --dangerously-bypass-approvals-and-sandbox` | same flags | `thread.started` id, `exec resume` |
+| grok | `--output-format streaming-json --permission-mode bypassPermissions --always-approve` | same flags | assigned `--session-id`, `--resume` |
+| claude | `-p --output-format stream-json --dangerously-skip-permissions` | same flags | assigned `--session-id`, `--resume` |
+
+Every worker runs with full autonomy: no OS sandbox, no approval prompts, every tool, full network. The runner is meant for a dedicated machine the owner controls; isolation is the task worktree. Read mode is a contract in the brief, not a tool restriction. `--permission-mode` can narrow grok or claude for one run. The brief goes through a file or stdin, never argv. The worker inherits the host environment, GitHub login included; only other model vendors' API keys are withheld.
+
+The hard guardrails are in the worker header: commit only on the task branch, never push to main, merge, force-push, deploy, send customer-facing messages, or print or copy credentials. Per-run Git hooks in `.pstack/runs/<task-id>/hooks` back the first three: `pre-commit` refuses a commit on any other branch, `pre-push` refuses main, deletions and non-fast-forward pushes. The project's own hooks still run. The hooks are a tripwire for a cooperating worker, not a security boundary.
+
+Three deadlines apply: `--startup-timeout` (120 s to the first event), `--idle-timeout` (900 s between events) and `--timeout` (3600 s total); 0 disables one. A breach stops the worker's process group and yields `startup_timeout`, `stalled` or `timeout` with exit code 124. `kill` gives `killed` and 130. A status whose runner died without a receipt reads as `lost`. Success requires exit 0, the provider's successful terminal event and a nonempty final message.
+
+`--role` reads model and effort from that role in `.pstack/config.json` and fails when the role has no binding for the chosen provider. Without it, `host_bindings.claude-code.workers.<provider>` applies, then the CLI default.
+
+Fixture tests cover lifecycle, watchdogs, kill, resume, flag construction and the guard hooks. Live Codex 0.160.0 and Grok Build 1.0.46 workers ran in parallel with these flags on a Debian 13 host; each reached the network, ran shell commands and committed on its task branch unattended. The external Claude profile was not rerun live with the bypass flag.

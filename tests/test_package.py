@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import shutil
 import sys
@@ -12,7 +13,7 @@ class PackageTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
-        for directory in ('upstream', 'adapters', 'runtime', 'config', 'extra-skills', 'tools'):
+        for directory in ('upstream', 'adapters', 'runtime', 'config', 'extra-skills', 'host-agents', 'tools'):
             shutil.copytree(ROOT / directory, self.root / directory, ignore=shutil.ignore_patterns('__pycache__'))
         for name in ('upstream.lock.json', 'NOTICE.md', 'LICENSE-cursor-team-kit', 'LICENSE'):
             shutil.copy2(ROOT / name, self.root)
@@ -86,6 +87,20 @@ class PackageTests(unittest.TestCase):
             self.assertIn('$' + slug, policy)
         self.assertEqual((plugin / 'skills/architect/agents/openai.yaml').read_text(), 'policy:\n  allow_implicit_invocation: false\n')
         validate(self.root)
+    def test_claude_code_host_components(self):
+        plugin, _ = build(self.root)
+        manifest = json.loads((plugin / '.claude-plugin/plugin.json').read_text())
+        self.assertEqual(manifest['name'], 'sapsynk-pstack')
+        self.assertTrue((plugin / 'agents/pstack-worker.md').read_text().startswith('---\nname: pstack-worker\n'))
+        self.assertTrue(os.access(plugin / 'bin/pstack-run', os.X_OK))
+        self.assertTrue((plugin / 'runtime/pstack_run.py').is_file())
+        # Entry skills stay model-invocable; leaves are explicit so sessions do not pay for 49 descriptions.
+        self.assertNotIn('disable-model-invocation', (plugin / 'skills/poteto-mode/SKILL.md').read_text().split('---')[1])
+        self.assertIn('disable-model-invocation: true', (plugin / 'skills/architect/SKILL.md').read_text().split('---')[1])
+        (plugin / 'bin/pstack-run').chmod(0o644)
+        with self.assertRaisesRegex(ValueError, 'runner shim'):
+            validate(self.root)
+
     def test_entry_discovery_cannot_regress_silently(self):
         plugin, _ = build(self.root)
         (plugin / 'skills/poteto-mode/agents/openai.yaml').write_text('policy:\n  allow_implicit_invocation: false\n')

@@ -11,6 +11,8 @@ Write a bounded request JSON containing provider, model, optional effort, mode (
 
 Invoke `python3 <package>/runtime/cli.py run --project <project> --request <request.json>` in a persistent host terminal session. Retain its session handle and initial job ID. Start independent candidates before waiting. Use the runtime's status/cancel commands and the host's terminal lifecycle. A timeout is optional and must come from an explicit task bound.
 
+On an owner-controlled host use the project's `scripts/pstack-run run <codex|grok|claude> <task-id> <brief-file> [--role "<role>"]` instead of a request file. It creates the task worktree, runs each CLI with full autonomy (no sandbox, no approval prompts; see the Claude Code adapter's autonomy policy), enforces startup, idle and total deadlines, and prints one receipt line. `resume`, `status`, `diff`, `kill` and `clean` address the same task id. Start each worker as its own background task.
+
 Read every terminal receipt and nonempty result. Confirm the selected provider, model evidence and successful normalized outcome. An exit-zero process without a valid final result is incomplete. Keep unverified model identity labeled; do not invent a reported model. Native and external candidates finish before a judge reads their artifacts.
 
 Provider credentials stay in supported secret settings or authenticated CLI profiles. Do not paste credentials into requests, prompts, source control or receipts. External agents remain subject to the outer sandbox and their CLI's supported permissions. Missing credentials, unsupported flags, failed output, cancellation and unmet isolation are explicit unavailable/failed lanes; never substitute another provider silently.

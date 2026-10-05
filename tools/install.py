@@ -10,6 +10,8 @@ import sys
 
 START = '<!-- sapsynk-pstack:start -->'
 END = '<!-- sapsynk-pstack:end -->'
+CLAUDE_MARKETPLACE = 'sapsynk'
+CLAUDE_PLUGIN = 'sapsynk-pstack@' + CLAUDE_MARKETPLACE
 
 
 def codex_home(home=None):
@@ -74,6 +76,74 @@ def managed_block(path, content, start_marker=START, end_marker=END):
         path.write_text(new)
 
 
+def claude_query(cli, *command):
+    result = subprocess.run([cli, 'plugin', *command, '--json'], check=True, capture_output=True, text=True)
+    return json.loads(result.stdout)
+
+
+def claude_package(executable='claude', plugin=CLAUDE_PLUGIN):
+    """Directory Claude Code actually loads; a directory marketplace is read in place."""
+    cli = shutil.which(executable)
+    if not cli:
+        raise RuntimeError('Claude Code CLI unavailable; cannot verify the active package')
+    # A project that enables the plugin adds a project-scope entry beside the user one.
+    folders = {entry.get('readFromFolder') or entry['installPath'] for entry in claude_query(cli, 'list')
+               if entry.get('id') == plugin and entry.get('enabled')}
+    if len(folders) != 1:
+        raise ValueError('exactly one enabled installed ' + plugin + ' package is required in Claude Code')
+    return pathlib.Path(folders.pop())
+
+
+def claude_marketplace(cli, name, checkout, plugins):
+    """Serve one marketplace name from one pinned checkout with these plugins enabled."""
+    checkout = pathlib.Path(checkout).resolve()
+    if not (checkout / '.claude-plugin/marketplace.json').is_file():
+        raise ValueError('checkout lacks .claude-plugin/marketplace.json')
+
+    def run(*command):
+        subprocess.run([cli, 'plugin', *command], check=True, capture_output=True, text=True)
+    registered = [entry for entry in claude_query(cli, 'marketplace', 'list') if entry.get('name') == name]
+    installed = {entry['id']: entry for entry in claude_query(cli, 'list') if entry.get('id') in plugins}
+    if registered and pathlib.Path(registered[0].get('path') or '').resolve() != checkout:
+        # Another pin owns the name. Replace it rather than leave two sources for one plugin.
+        for plugin in installed:
+            run('uninstall', plugin)
+        installed = {}
+        run('marketplace', 'remove', name)
+        registered = []
+    if not registered:
+        run('marketplace', 'add', str(checkout))
+    for plugin in plugins:
+        if plugin not in installed:
+            run('install', plugin, '--scope', 'user')
+        elif not installed[plugin].get('enabled'):
+            run('enable', plugin)
+
+
+def install_claude(checkout, expected_digest=None, expected_version=None, executable='claude'):
+    """Point Claude Code's user marketplace at one verified pinned checkout and enable the plugin."""
+    cli = shutil.which(executable)
+    if not cli:
+        raise RuntimeError('Claude Code CLI unavailable; native installation was not performed')
+    claude_marketplace(cli, CLAUDE_MARKETPLACE, checkout, [CLAUDE_PLUGIN])
+    active_package = claude_package(cli)
+    identity = verify_package(active_package, expected_digest, expected_version) if expected_digest else None
+    return {'claude_code_installation': 'completed', 'claude_code_source': str(pathlib.Path(checkout).resolve()),
+            'claude_code_identity_verified': identity is not None, 'claude_code_package': str(active_package)}
+
+
+def codex_marketplace(cli, name, source, revision=None):
+    """Add a Codex marketplace, replacing one of the same name that points elsewhere."""
+    command = [cli, 'plugin', 'marketplace', 'add', str(source)] + (['--ref', revision] if revision else [])
+    added = subprocess.run(command, capture_output=True, text=True)
+    if added.returncode and 'is already added from a different source' in added.stderr:
+        subprocess.run([cli, 'plugin', 'marketplace', 'remove', name], check=True, capture_output=True, text=True)
+        added = subprocess.run(command, capture_output=True, text=True)
+    if added.returncode:
+        sys.stderr.write(added.stderr)
+        added.check_returncode()
+
+
 def install(source, revision=None, global_default=False, home=None, executable='codex', expected_digest=None, package=None, expected_version=None):
     if global_default:
         validate_managed_block(codex_home(home) / 'AGENTS.md')
@@ -82,10 +152,7 @@ def install(source, revision=None, global_default=False, home=None, executable='
         raise RuntimeError('Codex CLI unavailable; native installation was not performed')
     for command in [('plugin', '--help'), ('plugin', 'marketplace', 'add', '--help'), ('plugin', 'add', '--help')]:
         subprocess.run([cli, *command], check=True, capture_output=True, text=True)
-    args = [cli, 'plugin', 'marketplace', 'add', str(source)]
-    if revision:
-        args += ['--ref', revision]
-    subprocess.run(args, check=True)
+    codex_marketplace(cli, 'sapsynk-pstack', source, revision)
     result = subprocess.run([cli, 'plugin', 'add', 'sapsynk-pstack@sapsynk-pstack'], check=True, capture_output=True, text=True)
     if result.stdout:
         print(result.stdout, end='')
@@ -111,6 +178,7 @@ def install(source, revision=None, global_default=False, home=None, executable='
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--host', choices=('codex', 'claude-code'), default='codex')
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument('--local', type=pathlib.Path)
     source.add_argument('--remote')
@@ -125,7 +193,12 @@ def main():
         parser.error('remote installation requires an exact 40-character commit SHA')
     if args.local and not (args.local / '.agents/plugins/marketplace.json').exists():
         parser.error('local repository lacks .agents/plugins/marketplace.json')
+    if args.host == 'claude-code' and not args.local:
+        parser.error('Claude Code installs from a verified local checkout; supply --local')
     try:
+        if args.host == 'claude-code':
+            print(json.dumps(install_claude(args.local, args.digest, args.expected_version)))
+            return 0
         install(args.local or args.remote, args.revision, args.global_default, args.home, expected_digest=args.digest, package=args.package, expected_version=args.expected_version)
     except (RuntimeError, ValueError, subprocess.CalledProcessError) as error:
         print(f'Installation failed: {error}', file=sys.stderr)

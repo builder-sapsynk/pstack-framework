@@ -1,7 +1,7 @@
 {
   "name": "sapsynk-pstack",
   "schema_version": 1,
-  "source_digest": "66ba3430db447bc100d33dc41a4547994ae71390ec1a7ebab747f548999e77f5",
+  "source_digest": "b485bcc32efccab9a1b2aa741b776d9da9d30b2d062ef3a0f5c0b5cf5a99c87a",
   "upstream_commit": "23e4138daa01c42d4969f7a5465f82704e64f798",
-  "version": "0.1.5"
+  "version": "0.2.0"
 }

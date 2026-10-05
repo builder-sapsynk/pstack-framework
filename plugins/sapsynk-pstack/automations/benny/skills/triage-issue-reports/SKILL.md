@@ -1,9 +1,10 @@
 ---
 name: triage-issue-reports
 description: Triage Slack issue reports with one thread-only verdict, evidence review, cause-aware routing, tracker dedupe, and fail-closed ticket creation. Use only from the configured Benny triage automation.
+disable-model-invocation: true
 ---
 
-> Sapsynk host adapter: Read [the portable contract](../../../../adapters/CONTRACT.md) and the [Codex mapping](../../../../adapters/codex.md) before executing this workflow. Select the matching host adapter when running elsewhere; preserve the original requirements and report unavailable capabilities. Verify the pinned [framework identity](../../../../framework.json) before relying on this installation.
+> Sapsynk host adapter: Read [the portable contract](../../../../adapters/CONTRACT.md) and the [Codex](../../../../adapters/codex.md) or [Claude Code](../../../../adapters/claude-code.md) mapping for the coordinating host before executing this workflow. Select the matching host adapter when running elsewhere; preserve the original requirements and report unavailable capabilities. Verify the pinned [framework identity](../../../../framework.json) before relying on this installation.
 
 # Triage issue reports
 

@@ -24,9 +24,10 @@
     "pstack",
     "engineering",
     "codex",
+    "claude-code",
     "portable"
   ],
   "license": "MIT",
   "name": "sapsynk-pstack",
-  "version": "0.1.5"
+  "version": "0.2.0"
 }

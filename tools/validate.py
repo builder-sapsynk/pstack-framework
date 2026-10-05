@@ -7,7 +7,7 @@ import re
 import sys
 import zipfile
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build import ROOT, NAME, VERSION, adapted_skill, files, sha, verify_source, source_digest
+from build import ROOT, NAME, VERSION, RUNNER_SHIM, adapted_skill, files, sha, verify_source, source_digest
 
 LINK = re.compile(r'!?\[[^\]]*\]\(([^\s)]+)(?:\s+[^)]*)?\)')
 
@@ -86,6 +86,18 @@ def validate(root=ROOT):
                 continue
             if (package / directory / path).read_bytes() != source.read_bytes():
                 raise ValueError('Missing or changed support resource: ' + directory + '/' + path)
+    for path, source in files(root / 'host-agents').items():
+        if (package / 'agents' / path).read_bytes() != source.read_bytes():
+            raise ValueError('Missing or changed host agent: ' + path)
+    claude = json.loads((package / '.claude-plugin/plugin.json').read_text())
+    if claude.get('name') != NAME or claude.get('version') != VERSION:
+        raise ValueError('Invalid Claude Code plugin manifest')
+    catalog = json.loads((root / '.claude-plugin/marketplace.json').read_text())
+    if catalog['plugins'][0].get('name') != NAME or catalog['plugins'][0].get('source') != './plugins/' + NAME:
+        raise ValueError('Invalid Claude Code marketplace source')
+    shim = package / 'bin/pstack-run'
+    if shim.read_text() != RUNNER_SHIM or not shim.stat().st_mode & 0o100:
+        raise ValueError('Missing or non-executable worker runner shim')
     for path, source in files(root / 'extra-skills').items():
         if (package / 'skills' / path).read_bytes() != source.read_bytes():
             raise ValueError('Missing extra skill: ' + path)

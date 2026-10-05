@@ -2,9 +2,9 @@
 
 Use pstack's poteto-mode and figure-it-out workflow for substantive work. The pristine upstream source is `upstream/pstack`; do not edit it. Read the relevant principles, skill, and playbook before applying them. Preserve workflow requirements and explicitly report capabilities that the host cannot provide.
 
-Use `Boobesh P <builder@sapsynk.com>` for every commit. Do not override this identity unless the user explicitly requests it.
+Use `Boobesh <builder@sapsynk.com>` for every commit. Do not override this identity unless the user explicitly requests it.
 
-Generated plugin files belong in `plugins/sapsynk-pstack`; change their sources and rebuild instead of editing generated copies. Provider execution is owned by `runtime/`. Build and validation are owned by `tools/`. Portable interpretation and host mappings belong in `adapters/`. Keep model providers independent from agent hosts.
+Generated plugin files belong in `plugins/sapsynk-pstack`; change their sources and rebuild instead of editing generated copies. Provider execution is owned by `runtime/`. Build and validation are owned by `tools/`. Portable interpretation and host mappings belong in `adapters/`. Host-native agent definitions belong in `host-agents/`. Keep model providers independent from agent hosts.
 
 All providers use the same canonical project sources, documentation, framework configuration and verification recipes. Do not create Grok-specific project copies, framework forks or duplicate source caches for worker access. Use shared Git worktrees for concurrent edits, and point workers at the canonical resources directly. Private per-job session state and receipts are execution evidence, not a second project. Report unavailable host integrations explicitly rather than claiming tool parity from filesystem access alone.
 

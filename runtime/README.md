@@ -35,3 +35,35 @@ Optional `resume_job` addresses a completed owned native job, preserves validate
 Cancellation retains descendant PID/start identities through TERM/KILL escalation and bounded pipe draining, including detached command descendants. Partial native stdout/stderr survives timeout or cancellation. A nonexecuting orphan zombie can remain until the host reaps it; this is distinct from a running process. Remote model API cancellation is unverified.
 
 The broad task lane is not activated for this shared cloud host. Its approval reviewer rejected unrestricted launches despite explicit owner authorization. Cloud internet access is already unrestricted. Official [Agent approvals and security](https://developers.openai.com/codex/agent-approvals-security) distinguishes user-reviewed approvals from automatic review and managed constraints. Changing a brief or a local config file cannot override the active host policy. A separate isolated native-tool proof succeeded, but no container or ACP adapter was adopted as the project default. Preserve the direct CLI preference and require a permitted host launch before promotion.
+
+## Local worker runner
+
+`pstack_run.py` is the worker path on an owner-controlled host. Projects call it through `scripts/pstack-run`, which resolves the pinned package first. It is separate from the request-file runtime above and does not use its dialects or host-boundary declaration.
+
+```sh
+scripts/pstack-run run <codex|grok|claude> <task-id> <brief-file> [--role "<role>"] [--mode write|read]
+scripts/pstack-run resume <task-id> <brief-file>
+scripts/pstack-run status [<task-id>] [--full]
+scripts/pstack-run diff <task-id> [--patch]
+scripts/pstack-run kill <task-id>
+scripts/pstack-run clean <task-id> [--force]
+scripts/pstack-run doctor
+```
+
+`run` blocks until the worker is terminal. Start each worker as its own background task; stdout carries one `pstack.started` line and one final receipt line. A write task gets the worktree `../.pstack-worktrees/<project>/<task-id>` on branch `pstack/<task-id>`, based on `--base` or HEAD. A read task runs in the project unless `--worktree` or `--cwd` says otherwise. `PSTACK_WORKTREE_ROOT` moves the worktree directory. A task id is reused only through `resume` or an explicit `run --force`.
+
+The run directory `.pstack/runs/<task-id>/` holds `brief.md`, the submitted `prompt.txt`, `events.jsonl`, `stderr.log`, `last-message.txt` and `status.json`. The event log is the provider's own JSON lines plus `pstack.*` lifecycle events; non-JSON output is wrapped as `pstack.raw`. `status.json` records `state`, `session_id`, `pid`, `exit_code`, `cost_usd`, `usage`, a summary capped at 600 characters, the diffstat against the task base, model, effort, limits and the exact argv.
+
+| Provider | Write mode | Read mode | Session |
+| --- | --- | --- | --- |
+| codex | `exec --json --sandbox workspace-write` | `--sandbox read-only` | `thread.started` id, `exec resume` |
+| grok | `--output-format streaming-json --permission-mode auto --no-subagents` | adds `--disallowed-tools write,search_replace` | assigned `--session-id`, `--resume` |
+| claude | `-p --output-format stream-json --permission-mode acceptEdits`, fixed tool list | `dontAsk` with Read, Glob, Grep | assigned `--session-id`, `--resume` |
+
+Codex is the only lane with an OS sandbox. Grok's read mode removes its file-edit tools but keeps the terminal. `--permission-mode` can select another non-bypass mode for grok or claude. The brief goes through a file or stdin, never argv. Credential variables of other services and GitHub tokens are removed from the worker environment; on-disk CLI logins stay readable.
+
+Three deadlines apply: `--startup-timeout` (120 s to the first event), `--idle-timeout` (900 s between events) and `--timeout` (3600 s total); 0 disables one. A breach stops the worker's process group and yields `startup_timeout`, `stalled` or `timeout` with exit code 124. `kill` gives `killed` and 130. A status whose runner died without a receipt reads as `lost`. Success requires exit 0, the provider's successful terminal event and a nonempty final message.
+
+`--role` reads model and effort from that role in `.pstack/config.json` and fails when the role has no binding for the chosen provider. Without it, `host_bindings.claude-code.workers.<provider>` applies, then the CLI default.
+
+Fixture tests cover lifecycle, watchdogs, kill, resume and flag construction. Live Codex 0.160.0 and Grok Build 1.0.46 runs with resume, and a Claude Code 2.1.289 run, were exercised on a Debian 13 host.

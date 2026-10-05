@@ -486,5 +486,32 @@
         }
       ]
     }
+  },
+  "host_bindings": {
+    "codex": {
+      "coordinator": "codex",
+      "native": "host spawn tool for codex/native bindings",
+      "external": "runtime/cli.py request files"
+    },
+    "claude-code": {
+      "coordinator": "claude",
+      "runner": "scripts/pstack-run",
+      "dispatch": {
+        "claude": "Agent tool, sapsynk-pstack:pstack-worker, worktree isolation",
+        "inherit-parent": "Agent tool, sapsynk-pstack:pstack-worker, worktree isolation",
+        "grok": "scripts/pstack-run run grok",
+        "codex": "scripts/pstack-run run codex; transport native has no native child on this host"
+      },
+      "workers": {
+        "grok": {
+          "model": "grok-4.7",
+          "effort": "medium"
+        },
+        "codex": {
+          "model": "gpt-6.1-sol",
+          "effort": "high"
+        }
+      }
+    }
   }
 }

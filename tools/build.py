@@ -11,7 +11,9 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 NAME = 'sapsynk-pstack'
-VERSION = '0.1.5'
+VERSION = '0.2.0'
+ENTRY_SKILLS = ('poteto-mode', 'setup-pstack')
+RUNNER_SHIM = '#!/bin/sh\nexec python3 "$(dirname "$(readlink -f "$0")")/../runtime/pstack_run.py" "$@"\n'
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
@@ -28,7 +30,7 @@ def semantic_inputs(root):
         if not source.is_file():
             raise ValueError('Missing semantic source: ' + name)
         selected[name] = source
-    for directory in ('runtime', 'adapters', 'config', 'extra-skills', 'tools'):
+    for directory in ('runtime', 'adapters', 'config', 'extra-skills', 'host-agents', 'tools'):
         for path, source in files(root / directory).items():
             if any(part in ('node_modules', '.git', '.pstack', '__pycache__') for part in Path(path).parts):
                 continue
@@ -68,7 +70,8 @@ def adapted_skill(data, path):
     prefix = os.path.relpath('.', Path(path).parent).replace(os.sep, '/')
     preamble = ('\n> Sapsynk host adapter: Read ['
                 'the portable contract](' + prefix + '/adapters/CONTRACT.md) and the '
-                '[Codex mapping](' + prefix + '/adapters/codex.md) before executing this '
+                '[Codex](' + prefix + '/adapters/codex.md) or [Claude Code](' + prefix +
+                '/adapters/claude-code.md) mapping for the coordinating host before executing this '
                 'workflow. Select the matching host adapter when running elsewhere; preserve '
                 'the original requirements and report unavailable capabilities. Verify the pinned '
                 '[framework identity](' + prefix + '/framework.json) before relying on this installation.\n')
@@ -79,17 +82,20 @@ def adapted_skill(data, path):
                      'confirmation govern portable configuration; retain every original step.\n')
     # The original body begins immediately after the closing frontmatter line.
     body = text[match.end():]
-    output = '---\nname: ' + slug + '\ndescription:' + description.group(1).rstrip() + '\n---\n' + preamble + body
+    # Claude Code loads every model-invocable description into each session. Leaf skills
+    # stay explicit there, matching the Codex implicit-invocation policy.
+    explicit = '' if slug in ENTRY_SKILLS else 'disable-model-invocation: true\n'
+    output = '---\nname: ' + slug + '\ndescription:' + description.group(1).rstrip() + '\n' + explicit + '---\n' + preamble + body
     return output.encode(), sha(body.encode())
 
 def build(root=ROOT):
     root = Path(root)
     lock, original = verify_source(root)
     identity_digest = source_digest(root)
-    for required in ('adapters/CONTRACT.md', 'adapters/codex.md'):
+    for required in ('adapters/CONTRACT.md', 'adapters/codex.md', 'adapters/claude-code.md'):
         if not (root / required).is_file():
             raise ValueError('Missing required resource: ' + required)
-    for directory in ('runtime', 'config', 'extra-skills'):
+    for directory in ('runtime', 'config', 'extra-skills', 'host-agents'):
         if not (root / directory).is_dir():
             raise ValueError('Missing source directory: ' + directory)
     output = root / 'plugins' / NAME
@@ -103,7 +109,7 @@ def build(root=ROOT):
         if path.endswith('/SKILL.md'):
             data, body_hash = adapted_skill(data, path)
             row.update(status='adapted', original_body_sha256=body_hash,
-                       changes=['native frontmatter', 'host adapter preamble'])
+                       changes=['native frontmatter', 'explicit-only leaf invocation', 'host adapter preamble'])
         destination = output / path
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes(data)
@@ -130,6 +136,15 @@ def build(root=ROOT):
             raise ValueError('Extra skill collision: ' + path)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
+    for path, source in files(root / 'host-agents').items():
+        target = output / 'agents' / path
+        if target.exists():
+            raise ValueError('Host agent collision: ' + path)
+        shutil.copy2(source, target)
+    shim = output / 'bin/pstack-run'
+    shim.parent.mkdir()
+    shim.write_text(RUNNER_SHIM)
+    shim.chmod(0o755)
     for skill in (output / 'skills').rglob('SKILL.md'):
         policy = skill.parent / 'agents/openai.yaml'
         if not policy.exists():
@@ -143,7 +158,7 @@ def build(root=ROOT):
         'description': 'Complete portable Sapsynk distribution of pinned pstack workflows.',
         'author': {'name': 'Sapsynk'}, 'license': 'MIT', 'skills': './skills/',
         'homepage': 'https://github.com/builder-sapsynk/pstack-framework',
-        'keywords': ['pstack', 'engineering', 'codex', 'portable'],
+        'keywords': ['pstack', 'engineering', 'codex', 'claude-code', 'portable'],
         'interface': {'displayName': 'Sapsynk pstack', 'shortDescription': 'Portable engineering workflows',
             'longDescription': 'Pinned upstream pstack with portable host adapters and external agent tools.',
             'developerName': 'Sapsynk', 'category': 'Developer Tools',
@@ -154,10 +169,12 @@ def build(root=ROOT):
     portable['extensions'] = {'com.openai': {'interface': manifest['interface']}}
     write_json(output / 'plugin.json', portable)
     write_json(output / '.codex-plugin/plugin.json', manifest)
+    # Claude Code discovers agents/ and bin/ by convention.
     write_json(output / '.claude-plugin/plugin.json', {k: v for k, v in manifest.items() if k != 'interface'})
     write_json(output / 'parity.json', {'schema_version': 1, 'upstream_commit': lock['commit'],
         'original_files': len(original), 'framework_source_digest': identity_digest, 'files': parity})
     marketplace = {'name': 'sapsynk', 'owner': {'name': 'Sapsynk'},
+        'metadata': {'description': 'Sapsynk pstack engineering framework for Claude Code.'},
         'plugins': [{'name': NAME, 'source': './plugins/' + NAME, 'description': manifest['description']}]}
     native_marketplace = {'name': NAME, 'interface': {'displayName': 'Sapsynk pstack'},
         'plugins': [{'name': NAME, 'source': {'source': 'local', 'path': './plugins/' + NAME},

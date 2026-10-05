@@ -1,4 +1,7 @@
 {
+  "metadata": {
+    "description": "Sapsynk pstack engineering framework for Claude Code."
+  },
   "name": "sapsynk",
   "owner": {
     "name": "Sapsynk"

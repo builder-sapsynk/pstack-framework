@@ -84,17 +84,18 @@ class TaskProfileTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'explicit capability scope'):g.validate_task(dict(req,capability_scope={'terminal':'autonomous'}))
         with self.assertRaisesRegex(ValueError,'exact command grants'):g.validate_task(dict(req,allowed_commands=['git status']))
         args=g.task_argv(req)
-        self.assertNotIn('--tools',args);self.assertNotIn('--disable-web-search',args);self.assertNotIn('--no-subagents',args)
+        self.assertNotIn('--tools',args);self.assertNotIn('--disable-web-search',args);self.assertIn('--no-subagents',args)
         self.assertNotIn('--yolo',args);self.assertNotIn('--always-approve',args)
         self.assertIn('*',args)
-        self.assertNotIn('--disallowed-tools',args)
+        self.assertEqual(args[args.index('--disallowed-tools')+1], 'spawn_subagent')
+        self.assertEqual(req['capability_scope']['child_agents'], 'coordinator-only')
         removed=g.task_argv(self.request('read-only'))
         removed=removed[removed.index('--disallowed-tools')+1].split(',')
-        for name in ('search_replace','write','write_file'):self.assertIn(name,removed)
+        self.assertEqual(removed, ['spawn_subagent', 'search_replace', 'write', 'write_file'])
         self.assertNotIn('bypassPermissions',' '.join(args))
 
     def stream(self, tools=None, command='git push origin HEAD && git merge main', read_path='../canonical/AGENTS.md', write_path='a.py'):
-        tools=tools or ['grep','image_gen','list_dir','memory_search','read_file','run_terminal_command','search_replace','spawn_subagent','todo_write','web_fetch','web_search','write_file']
+        tools=tools or ['grep','image_gen','list_dir','memory_search','read_file','run_terminal_command','search_replace','todo_write','web_fetch','web_search','write_file']
         return [
             {'type':'system','subtype':'init','session_id':'abc','model':'grok-4.7','tools':tools,'mcp_servers':[]},
             {'type':'assistant','session_id':'abc','message':{'model':'grok-4.7','role':'assistant','stop_reason':'tool_use','content':[
@@ -124,14 +125,28 @@ class TaskProfileTests(unittest.TestCase):
         self.assertEqual(metrics['toolOutcomes'][3]['result'][0]['url'],'https://docs.x.ai')
         self.assertIn('image_gen',metrics['nativeTools'])
         self.assertIn('todo_write',metrics['capabilityAvailability']['other_official_tools'])
-        self.assertEqual(metrics['capabilityAvailability']['child_agents']['status'],'observed-in-init')
-        self.assertNotIn('verified',json.dumps(metrics['capabilityAvailability']))
+        self.assertEqual(metrics['capabilityAvailability']['child_agents']['status'],'unverified')
+        self.assertTrue(all(item['status'] in ('observed-in-init', 'unverified') for item in metrics['capabilityAvailability'].values() if isinstance(item, dict)))
         self.assertEqual(metrics['artifactVerification'],'separate')
         self.assertIn('host sandbox',metrics['terminalReach'])
         self.assertEqual(json.loads(output.splitlines()[0])['tools'],[])
         self.assertEqual([block['type'] for block in json.loads(output.splitlines()[1])['message']['content']],['text'])
         deploy=self.stream(command='deploy production')
         g.normalize('\n'.join(map(json.dumps,deploy)),self.request())
+
+    def test_worker_inventory_and_calls_reject_spawning_in_both_modes(self):
+        for mode in ('read-only', 'isolated-write'):
+            with self.subTest(mode=mode):
+                events = self.stream(tools=['read_file', 'run_terminal_command', 'web_fetch', 'web_search', 'spawn_subagent'])
+                events = [events[0], events[-1]]
+                with self.assertRaisesRegex(ValueError, 'disallowed tool remained'):
+                    g.normalize('\n'.join(map(json.dumps, events)), self.request(mode))
+                events[0]['tools'].remove('spawn_subagent')
+                _, metrics = g.normalize('\n'.join(map(json.dumps, events)), self.request(mode))
+                self.assertEqual(metrics['nativeTools'], ['read_file', 'run_terminal_command', 'web_fetch', 'web_search'])
+                events.insert(1, {'type': 'assistant', 'session_id': 'abc', 'message': {'model': 'grok-4.7', 'role': 'assistant', 'stop_reason': 'tool_use', 'content': [{'type': 'tool_use', 'id': 'spawn', 'name': 'spawn_subagent', 'input': {'prompt': 'delegate'}}]}})
+                with self.assertRaisesRegex(ValueError, 'ungranted or malformed native tool use'):
+                    g.normalize('\n'.join(map(json.dumps, events)), self.request(mode))
 
     def test_missing_tools_stay_unverified_and_legacy_web_blocks_stay_rejected(self):
         tools=['grep','list_dir','read_file','run_terminal_command','search_replace','web_search']
@@ -192,7 +207,7 @@ class TaskProfileTests(unittest.TestCase):
             task=folder/'task';task.mkdir()
             home,_=g.prepare_home(task,{'dialect':g.TASK_DIALECT,'mode':'isolated-write'},{'GROK_HOME':str(original)})
             text=(Path(home)/'config.toml').read_text()
-            self.assertIn('[subagents]\nenabled = true\n',text);self.assertIn('web_fetch = true\n',text);self.assertIn('write_file = true\n',text)
+            self.assertIn('[subagents]\nenabled = false\n',text);self.assertIn('web_fetch = true\n',text);self.assertIn('write_file = true\n',text)
             read_job=folder/'read';read_job.mkdir()
             home,_=g.prepare_home(read_job,{'dialect':g.TASK_DIALECT,'mode':'read-only'},{'GROK_HOME':str(original)})
             self.assertIn('write_file = false\n',(Path(home)/'config.toml').read_text())
@@ -205,6 +220,24 @@ class TaskProfileTests(unittest.TestCase):
             self.assertEqual(resumed[1],'11111111-1111-4111-8111-111111111111')
             with self.assertRaisesRegex(ValueError,'managed-host job'):
                 g.prepare_home(base/'third',dict(binding,project=str(project),resume_job=str(following)),{})
+
+    def test_resumed_task_home_disables_previously_enabled_subagents(self):
+        for mode in ('read-only', 'isolated-write'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as folder:
+                project = Path(folder); base = project / '.pstack/runs'; first = base / 'first'
+                home = first / 'grok-home'; home.mkdir(parents=True)
+                (home / 'config.toml').write_text('[subagents]\nenabled = true\n')
+                binding = {'provider': 'grok', 'model': 'grok-4.7', 'mode': mode, 'cwd': str(project)}
+                receipt = dict(binding, status='complete', request={'dialect': g.TASK_DIALECT}, grokHome=str(home), metrics={'session_id': '11111111-1111-4111-8111-111111111111'})
+                (first / 'receipt.json').write_text(json.dumps(receipt))
+                result = g.prepare_home(base / 'next', dict(binding, dialect=g.TASK_DIALECT, project=str(project), resume_job=str(first)), {})
+                self.assertEqual(result, (str(home), '11111111-1111-4111-8111-111111111111'))
+                config = (Path(result[0]) / 'config.toml').read_text()
+                self.assertIn('[subagents]\nenabled = false\n', config)
+                self.assertIn('web_fetch = true\n', config)
+                self.assertIn('[memory]\nenabled = true\n', config)
+                self.assertIn('write_file = ' + ('true' if mode == 'isolated-write' else 'false') + '\n', config)
+                self.assertEqual((home / 'config.toml').stat().st_mode & 0o777, 0o600)
 
 
 if __name__=='__main__':unittest.main()

@@ -416,11 +416,11 @@ else:
         with self.assertRaisesRegex(ValueError, 'explicit capability scope'): r.validate(dict(request, capability_scope={}))
         with self.assertRaisesRegex(ValueError, 'exact command grants'): r.validate(dict(request, allowed_commands=['python3 -m unittest discover -s tests -q']))
         _, _, args, _ = r.profile(dict(request, resume_session='11111111-1111-4111-8111-111111111111'))
-        self.assertIn('--resume', args); self.assertNotIn('--tools', args); self.assertNotIn('--disable-web-search', args); self.assertNotIn('--no-subagents', args)
+        self.assertIn('--resume', args); self.assertNotIn('--tools', args); self.assertNotIn('--disable-web-search', args); self.assertIn('--no-subagents', args)
         self.assertNotIn('--yolo', args); self.assertIn('*', args); self.assertEqual(args[args.index('--permission-mode') + 1], 'dontAsk'); self.assertEqual(args[args.index('--sandbox') + 1], 'off')
         with patch.dict(os.environ, {'XAI_API_KEY': 'provider', 'OPENAI_API_KEY': 'other', 'GH_TOKEN': 'gh', 'HTTPS_PROXY': 'proxy'}, clear=True):
             env = r.environment('grok', gn.TASK_DIALECT, 'isolated-write')
-        self.assertEqual(env['GROK_SUBAGENTS'], '1'); self.assertEqual(env['GROK_WEB_FETCH'], '1'); self.assertEqual(env['GROK_WRITE_FILE'], '1')
+        self.assertEqual(env['GROK_SUBAGENTS'], '0'); self.assertEqual(env['GROK_WEB_FETCH'], '1'); self.assertEqual(env['GROK_WRITE_FILE'], '1')
         self.assertEqual(env['GROK_MEMORY'], '1'); self.assertEqual(env['GROK_TOOL_SEARCH'], '1'); self.assertEqual(env['GROK_LSP_TOOLS'], '1'); self.assertEqual(env['XAI_API_KEY'], 'provider'); self.assertEqual(env['HTTPS_PROXY'], 'proxy')
         self.assertNotIn('OPENAI_API_KEY', env); self.assertNotIn('GH_TOKEN', env)
         self.assertEqual(r.environment('grok', gn.TASK_DIALECT, 'read-only')['GROK_WRITE_FILE'], '0')
@@ -440,7 +440,7 @@ else:
         self.assertTrue(item['helpPreflight'])
 
     def test_task_run_discovers_inventory_and_keeps_web_usage(self):
-        tools = ['grep', 'list_dir', 'read_file', 'run_terminal_command', 'spawn_subagent', 'todo_write', 'web_fetch', 'web_search']
+        tools = ['grep', 'list_dir', 'read_file', 'run_terminal_command', 'todo_write', 'web_fetch', 'web_search']
         events = grok_events(cwd=str(self.root))
         events[0]['tools'] = tools
         events[2]['usage']['server_tool_use']['web_search_requests'] = 2
@@ -451,15 +451,15 @@ import sys, json, os
 from pathlib import Path
 args=sys.argv[1:]
 if '--version' in args: print('1.0.46 fixture')
-elif '--help' in args: print('--model --cwd --permission-mode --sandbox --output-format --disallowed-tools --no-plan --allow --prompt-file --reasoning-effort')
+elif '--help' in args: print('--model --cwd --permission-mode --sandbox --output-format --disallowed-tools --no-subagents --no-plan --allow --prompt-file --reasoning-effort')
 elif args==['models']: print('You are logged in with grok.com.\\n\\nAvailable models:\\n  * grok-4.7 (default)')
 elif args==['inspect','--json']: print(Path('inspect.json').read_text())
 else:
  home=Path(os.environ['GROK_HOME'])
  config=(home/'config.toml').read_text()
  assert 'web_fetch = true' in config, config
- assert '[subagents]\\nenabled = true' in config, config
- assert os.environ['GROK_SUBAGENTS']=='1'
+ assert '[subagents]\\nenabled = false' in config, config
+ assert os.environ['GROK_SUBAGENTS']=='0'
  assert os.environ['GROK_WEB_FETCH']=='1'
  assert os.environ['GROK_WRITE_FILE']=='0'
  assert os.environ['GROK_MEMORY']=='1'
@@ -467,7 +467,8 @@ else:
  assert 'OPENAI_API_KEY' not in os.environ
  assert os.environ['XAI_API_KEY']=='provider'
  assert '--disable-web-search' not in args
- assert '--no-subagents' not in args
+ assert '--no-subagents' in args
+ assert args[args.index('--disallowed-tools')+1]=='spawn_subagent,search_replace,write,write_file'
  assert '--tools' not in args
  assert '--yolo' not in args and '--always-approve' not in args and 'bypassPermissions' not in args
  assert args[args.index('--permission-mode')+1]=='dontAsk'
@@ -494,7 +495,7 @@ else:
         self.assertEqual(receipt['confinement'], 'managed-host')
         self.assertEqual(receipt['metrics']['usage']['server_tool_use']['web_search_requests'], 2)
         self.assertEqual(receipt['metrics']['nativeTools'], sorted(tools))
-        self.assertEqual(receipt['capabilityAvailability']['child_agents']['status'], 'observed-in-init')
+        self.assertEqual(receipt['capabilityAvailability']['child_agents']['status'], 'unverified')
         self.assertEqual(receipt['capabilityAvailability']['file_edit']['status'], 'unverified')
         self.assertTrue(all(item['status'] in ('observed-in-init', 'unverified') for item in receipt['capabilityAvailability'].values() if isinstance(item, dict)))
         self.assertIn('artifact verification separate', receipt['toolAccess'])
@@ -505,5 +506,26 @@ else:
         brief = (Path(receipt['job']) / 'brief.txt').read_text()
         self.assertTrue(brief.startswith(gn.TASK_HEADER))
         self.assertNotIn('launch subagents', brief)
+
+    def test_task_profiles_disable_spawning_and_preserve_other_capabilities(self):
+        for mode in ('read-only', 'isolated-write'):
+            with self.subTest(mode=mode):
+                request = dict(self.request, provider='grok', dialect=gn.TASK_DIALECT, mode=mode)
+                _, _, args, required = r.profile(request)
+                self.assertIn('--no-subagents', args)
+                self.assertIn('--no-subagents', required)
+                removed = args[args.index('--disallowed-tools') + 1].split(',')
+                self.assertEqual(removed, ['spawn_subagent', 'search_replace', 'write', 'write_file'] if mode == 'read-only' else ['spawn_subagent'])
+                self.assertEqual(args[args.index('--allow') + 1], '*')
+                self.assertNotIn('--tools', args)
+                self.assertNotIn('--disable-web-search', args)
+                with patch.dict(os.environ, {'GROK_SUBAGENTS': '1', 'XAI_API_KEY': 'fixture-provider', 'HTTPS_PROXY': 'fixture-proxy', 'SSL_CERT_FILE': 'fixture-trust'}, clear=True):
+                    env = r.environment('grok', gn.TASK_DIALECT, mode)
+                self.assertEqual(env['GROK_SUBAGENTS'], '0')
+                self.assertEqual({key: env[key] for key in ('GROK_MEMORY', 'GROK_TOOL_SEARCH', 'GROK_LSP_TOOLS', 'GROK_WEB_FETCH')}, {'GROK_MEMORY': '1', 'GROK_TOOL_SEARCH': '1', 'GROK_LSP_TOOLS': '1', 'GROK_WEB_FETCH': '1'})
+                self.assertEqual(env['GROK_WRITE_FILE'], '1' if mode == 'isolated-write' else '0')
+                self.assertEqual(env['XAI_API_KEY'], 'fixture-provider')
+                self.assertEqual(env['HTTPS_PROXY'], 'fixture-proxy')
+                self.assertEqual(env['SSL_CERT_FILE'], 'fixture-trust')
 
 if __name__ == '__main__': unittest.main()

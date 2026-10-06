@@ -85,7 +85,7 @@ def capability_scope(mode):
         'terminal': 'autonomous',
         'web': 'fetch-and-search',
         'files': 'create-and-edit' if mode == 'isolated-write' else 'read',
-        'child_agents': 'where-available',
+        'child_agents': 'coordinator-only',
         'authorization': 'user-scope-distinct-from-tool-enforcement',
         'terminal_reach': 'trusted-terminal-broader-than-instruction-unless-host-enforced',
     }
@@ -93,7 +93,7 @@ def capability_scope(mode):
 
 def disallowed_tools(req):
     # Read-only file tools remain an optional lane; this is not an init inventory.
-    names = []
+    names = ['spawn_subagent']
     if req['mode'] != 'isolated-write': names += list(EDIT_TOOLS)
     return names
 
@@ -109,9 +109,8 @@ def validate_task(req):
 
 def task_argv(req):
     # No --tools allowlist: a hardcoded list is not the trusted CLI inventory.
-    # Wildcard is the documented rule for native tools such as spawn_subagent.
     # This is explicit task authority, not semantic command or data confinement.
-    result = ['--allow', '*']
+    result = ['--no-subagents', '--allow', '*']
     removed = disallowed_tools(req)
     if removed: result += ['--disallowed-tools', ','.join(removed)]
     return result
@@ -120,7 +119,7 @@ def task_argv(req):
 def home_config(dialect, mode):
     if dialect == TASK_DIALECT:
         write = 'true' if mode == 'isolated-write' else 'false'
-        text = '[cli]\nauto_update = false\n[session]\nload_envrc = false\n[memory]\nenabled = true\n[subagents]\nenabled = true\n[features]\nweb_fetch = true\nwrite_file = ' + write + '\nlsp_tools = true\n'
+        text = '[cli]\nauto_update = false\n[session]\nload_envrc = false\n[memory]\nenabled = true\n[subagents]\nenabled = false\n[features]\nweb_fetch = true\nwrite_file = ' + write + '\nlsp_tools = true\n'
     else:
         text = LEGACY_HOME
     for vendor in ('cursor', 'claude'):
@@ -172,6 +171,9 @@ def prepare_home(job, req, env):
         owner_receipt = json.loads((owner / 'receipt.json').read_text())
         if owner_receipt.get('request', {}).get('dialect') != expected or any(owner_receipt.get(key) != req.get(key) for key in ('provider', 'model', 'cwd', 'mode')):
             raise ValueError('persisted session owner mismatch')
+        if expected == TASK_DIALECT:
+            (home / 'config.toml').write_text(home_config(expected, req['mode']))
+            os.chmod(home / 'config.toml', 0o600)
         return str(home), session
     home = job / 'grok-home'
     home.mkdir(mode=0o700)

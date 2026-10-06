@@ -37,7 +37,7 @@ def environment(provider, dialect=None, mode=None):
         env.update({key: '0' for key in disabled})
         if task:
             env.update({key: '1' for key in ('GROK_MEMORY', 'GROK_TOOL_SEARCH', 'GROK_LSP_TOOLS')})
-            env['GROK_SUBAGENTS'] = '1'
+            env['GROK_SUBAGENTS'] = '0'
             env['GROK_WEB_FETCH'] = '1'
             env['GROK_WRITE_FILE'] = '1' if mode == 'isolated-write' else '0'
         env['GROK_DISABLE_AUTOUPDATER'] = '1'

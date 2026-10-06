@@ -17,7 +17,7 @@ WRITE_TOOLS = {'search_replace'}
 EDIT_TOOLS = ('search_replace', 'write', 'write_file')
 TERMINAL_REACH = 'trusted terminal can exceed user-authorized instructions unless the host sandbox enforces them'
 WRITER_SCOPE = 'recorded direct file calls are checked against the worktree after execution; terminal, child and deferred tool dispatch are not confined by this check'
-TASK_HEADER = ('You are the assigned external worker for this bounded request. Complete the brief below in your assigned role. Do not activate a framework router, reroute this task, or delegate to another provider. Authorized native child agents are permitted when this profile discovered them. Respect the managed host sandbox and report unsupported capabilities.\n\n'
+TASK_HEADER = ('You are the assigned external worker for this bounded request. Complete the brief below in your assigned role. Do not activate a framework router, reroute this task, or delegate to another provider. Role resolution and spawning remain coordinator-only. Respect the managed host sandbox and report unsupported capabilities.\n\n'
                'User-authorized scope is an instruction and is distinct from tool enforcement. A trusted terminal can exceed user-authorized instructions unless the host sandbox enforces them. Bash allow rules do not create semantic merge, push, or deploy restrictions. Read canonical paths inside the declared host boundary. Write files only in the assigned worktree. Credentials, private transcripts, and caller data stay excluded.\n\n')
 LEGACY_HOME = '[cli]\nauto_update = false\n[session]\nload_envrc = false\n[memory]\nenabled = false\n[subagents]\nenabled = false\n[features]\nweb_fetch = false\nlsp_tools = false\n'
 

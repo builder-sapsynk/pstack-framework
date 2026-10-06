@@ -38,7 +38,7 @@ if '--version' in args: print('fixture 1')
 elif '--help' in args: print('--model --permission-mode --output-format --setting-sources --strict-mcp-config --no-session-persistence --disable-slash-commands --tools --restricted --disallowedTools --effort')
 elif args[:2]==['auth','status']: print(json.dumps({'loggedIn':True}))
 else:
- brief=sys.stdin.read().split('\\n\\n', 1)[-1]
+ brief=sys.stdin.read().split('--- BRIEF ---\\n', 1)[-1]
  if brief=='sleep': time.sleep(5)
  if brief=='nonzero':
   print('private failure output'); print('private stderr', file=sys.stderr); sys.exit(2)
@@ -279,7 +279,9 @@ else:
         self.assertEqual(receipt['filesystemIsolation'], 'unavailable')
         self.assertTrue(receipt['authVerified']); self.assertTrue(receipt['configurationPreflight'])
         brief = (Path(receipt['job']) / 'brief.txt').read_text()
-        self.assertEqual(brief, r.WORKER_HEADER + 'private payload')
+        self.assertTrue(brief.startswith(r.WORKER_HEADER))
+        self.assertEqual(brief.split('--- BRIEF ---\n', 1)[1], 'private payload')
+        self.assertIn('--- WORKER RESOURCES ---', brief)
         self.assertEqual(receipt['promptDigest'], hashlib.sha256(brief.encode()).hexdigest())
         self.assertNotIn('private payload', ' '.join(receipt['argv']))
         self.assertEqual((Path(receipt['job']) / 'response.txt').read_text(), 'answer\n')
@@ -472,7 +474,7 @@ else:
  assert args[args.index('--sandbox')+1]=='off'
  assert '*' in args
  brief=Path(args[args.index('--prompt-file')+1]).read_text()
- assert 'Authorized native child agents are permitted' in brief
+ assert 'Role resolution and spawning remain coordinator-only' in brief
  assert 'launch subagents' not in brief
  assert 'trusted terminal can exceed user-authorized instructions' in brief
  for event in json.loads(Path('events.json').read_text()): print(json.dumps(event))

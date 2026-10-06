@@ -18,6 +18,7 @@ import uuid
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import dispatch_policy
 import panel_divergence
+import worker_resources
 
 PROVIDERS = ('codex', 'grok', 'claude')
 MODES = ('write', 'read')
@@ -34,14 +35,13 @@ HEADER = ('You are pstack worker `{task}` running as an external {provider} CLI 
           'Your working directory is {where}.\n'
           'You run unattended with full autonomy on a dedicated machine: no sandbox, no approval prompts, '
           'full shell, tools and network. Use whatever the task needs.\n'
-          'You are a worker, not the coordinator. Do the brief directly. Do not load the pstack router, poteto-mode or '
-          'playbooks, run the bootstrap check, resolve roles, or start other agents; project instructions about those '
-          'address the coordinator. Read a skill file only when the brief names its path.\n'
+          'You are a worker, not the coordinator. Do the brief directly. Router dispatch, role resolution, '
+          'and spawning are coordinator-only.\n'
           '{writes}'
           'Hard limits: never push to main, merge, force-push, deploy, send customer-facing messages, '
           'or print or copy credentials. The coordinator integrates your branch.\n'
           'End with a final message of at most 10 lines: outcome, files touched, commits, '
-          'verification you ran with its result, and open issues.\n\n--- BRIEF ---\n')
+          'verification you ran with its result, and open issues.\n\n')
 PRE_COMMIT = ('#!/bin/sh\n# pstack worker guard: commits stay on the task branch.\n'
               'branch=$(git symbolic-ref --quiet --short HEAD || echo detached)\n'
               'if [ "$branch" != "$PSTACK_TASK_BRANCH" ]; then\n'
@@ -321,6 +321,7 @@ def execute(args, project, resume=False):
     text = brief.read_text()
     if not text.strip():
         raise ValueError('brief is empty: ' + str(brief))
+    resources = worker_resources.resolve(project, text)
     reap(previous)
     if resume:
         cwd, branch, base = Path(previous['cwd']), previous.get('branch'), previous.get('base')
@@ -349,8 +350,10 @@ def execute(args, project, resume=False):
     else:
         writes = 'Leave your changes uncommitted in this directory.\n'
     (run / 'brief.md').write_text(text)
-    (run / 'prompt.txt').write_text(HEADER.format(task=args.task, provider=provider, mode=mode, where=where, writes=writes) + text)
-    for name in ('brief.md', 'prompt.txt'):
+    save(run / 'resources.json', resources)
+    (run / 'prompt.txt').write_text(HEADER.format(task=args.task, provider=provider, mode=mode, where=where, writes=writes)
+                                    + worker_resources.prompt(resources, text))
+    for name in ('brief.md', 'prompt.txt', 'resources.json'):
         os.chmod(run / name, 0o600)
     if args.permission_mode and provider == 'codex':
         raise ValueError('--permission-mode applies to grok and claude; codex always runs with full access')

@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'runtime'))
@@ -56,9 +57,9 @@ class WorkerResourceTests(unittest.TestCase):
                             project=str(self.project), cwd=str(self.project),
                             brief=self.brief.read_text(), executable=str(self.binary))
 
-    def local(self, provider, task='resources', *extra):
+    def local(self, provider, task='resources', *extra, runner=None):
         env = {**os.environ, provider.upper() + '_BINARY': str(self.binary)}
-        return subprocess.run([sys.executable, str(ROOT / 'runtime/pstack_run.py'), '--project',
+        return subprocess.run([sys.executable, str(runner or ROOT / 'runtime/pstack_run.py'), '--project',
                                str(self.project), 'run', provider, task, str(self.brief),
                                '--mode', 'read', *extra], env=env, capture_output=True, text=True, timeout=15)
 
@@ -83,16 +84,53 @@ class WorkerResourceTests(unittest.TestCase):
                 self.assertIn('bootstrap', prompt)
                 self.assertNotIn('Do not load the pstack router, poteto-mode', prompt)
 
-    def test_managed_prompt_digest_covers_manifest_and_named_leaf(self):
-        receipt = cli.run(self.request)
-        self.assertEqual(receipt['status'], 'complete', receipt.get('error'))
-        run = Path(receipt['job'])
-        prompt = (run / 'brief.txt').read_text()
-        self.assertEqual(Path(str(self.binary) + '.prompt').read_text(), prompt)
-        manifest = self.manifest(prompt)
+    def test_generated_package_runner_uses_its_own_installed_resources(self):
+        package = ROOT / 'plugins/sapsynk-pstack'
+        result = self.local('codex', runner=package / 'runtime/pstack_run.py')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        manifest = self.manifest((self.project / '.pstack/runs/resources/prompt.txt').read_text())
+        self.assertEqual(manifest['framework']['root'], str(package))
+        self.assertIn(str(package / 'skills/poteto-mode/SKILL.md'), manifest['required_paths'])
+
+    def test_quoted_named_paths_preserve_spaces_and_matched_playbook(self):
+        leaf = self.root / 'resource directory/skills/custom/SKILL.md'
+        leaf.parent.mkdir(parents=True)
+        leaf.write_text('fixture skill')
+        playbook = ROOT / 'plugins/sapsynk-pstack/skills/poteto-mode/playbooks/bug-fix.md'
+        self.brief.write_text(f'Read `{leaf}` and `{playbook}`.\n')
+        result = self.local('codex')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        manifest = self.manifest((self.project / '.pstack/runs/resources/prompt.txt').read_text())
+        self.assertIn(str(leaf), manifest['required_paths'])
+        self.assertIn(str(playbook), manifest['required_paths'])
+        self.assertEqual(manifest['playbooks']['bug-fix'], str(playbook))
+
+    def test_urls_and_relative_references_are_not_absolute_resources(self):
+        self.brief.write_text(f'Review https://example.invalid/skills/example/SKILL.md and '
+                              f'skills/example/SKILL.md. Read `{self.leaf}`.\n')
+        result = self.local('codex')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        manifest = self.manifest((self.project / '.pstack/runs/resources/prompt.txt').read_text())
         self.assertIn(str(self.leaf), manifest['required_paths'])
-        self.assertEqual(manifest, json.loads((run / 'resources.json').read_text()))
-        self.assertEqual(receipt['promptDigest'], hashlib.sha256(prompt.encode()).hexdigest())
+
+    def test_managed_prompt_digest_covers_manifest_for_all_providers(self):
+        for provider in ('codex', 'claude', 'grok'):
+            request = dict(self.request, provider=provider)
+            if provider == 'grok':
+                request['dialect'] = {'auth_argv': ['auth', 'status'],
+                                      'run_argv': ['-p', '--model', '{model}', '--permission-mode', '{mode}'],
+                                      'required_flags': ['--model', '--permission-mode']}
+            with self.subTest(provider=provider):
+                receipt = cli.run(request)
+                self.assertEqual(receipt['status'], 'complete', receipt.get('error'))
+                run = Path(receipt['job'])
+                prompt = (run / 'brief.txt').read_text()
+                self.assertEqual(Path(str(self.binary) + '.prompt').read_text(), prompt)
+                manifest = self.manifest(prompt)
+                self.assertIn(str(self.leaf), manifest['required_paths'])
+                self.assertEqual(manifest, json.loads((run / 'resources.json').read_text()))
+                self.assertEqual(receipt['promptDigest'], hashlib.sha256(prompt.encode()).hexdigest())
+                self.assertEqual(Path(receipt['artifacts']['resources']).stat().st_mode & 0o777, 0o600)
 
     def test_missing_and_unreadable_named_paths_prevent_launch(self):
         leaf = self.root / 'skills/custom/SKILL.md'
@@ -150,6 +188,20 @@ class WorkerResourceTests(unittest.TestCase):
         self.assertEqual(manifest['plugins']['sapsynk-dyl']['root'], str(installed / 'sapsynk-dyl'))
         self.assertIn(str(self.project / '.agents/skills/verify-fixture/SKILL.md'), manifest['required_paths'])
         self.assertIn(str(installed / 'sapsynk-teamkit/skills/verify-this/SKILL.md'), manifest['required_paths'])
+        self.brief.write_text('Verify the fixture.\n')
+        cache = self.root / 'codex-home'
+        for name in plugins:
+            target = cache / 'plugins/cache/fixture' / name
+            target.mkdir(parents=True)
+            (target / '0.1.1').symlink_to(installed / name, target_is_directory=True)
+        with patch.dict(os.environ, {'CODEX_HOME': str(cache)}):
+            result = self.local('codex', 'from-lock')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            receipt = cli.run(dict(self.request, brief=self.brief.read_text()))
+            self.assertEqual(receipt['status'], 'complete', receipt.get('error'))
+            resolved = self.manifest((Path(receipt['job']) / 'brief.txt').read_text())
+            self.assertEqual(resolved['plugins']['sapsynk-dyl']['root'], str(installed / 'sapsynk-dyl'))
+        self.brief.write_text(f'Read {installed / "sapsynk-dyl/skills/dyl-review/SKILL.md"}\n')
         leaf = installed / 'sapsynk-dyl/skills/dyl-review/SKILL.md'
         leaf.write_text('changed locked resource')
         result = self.local('codex', 'changed')

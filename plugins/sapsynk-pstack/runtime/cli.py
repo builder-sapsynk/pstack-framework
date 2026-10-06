@@ -18,6 +18,7 @@ import uuid
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import grok_native as gn
 import workflow_metrics as wm
+import worker_resources
 
 PROVIDERS = ('claude', 'grok', 'codex')
 KEYS = {'claude': {'ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN'}, 'grok': {'XAI_API_KEY', 'GROK_API_KEY'}, 'codex': {'OPENAI_API_KEY', 'CODEX_API_KEY', 'CODEX_ACCESS_TOKEN'}}
@@ -434,7 +435,8 @@ def run(raw, on_start=None):
     req = validate(resolve_config(raw))
     task_grok = req['provider'] == 'grok' and req.get('dialect') == gn.TASK_DIALECT
     native_grok = req['provider'] == 'grok' and req.get('dialect') in (gn.DIALECT, gn.TASK_DIALECT)
-    req['brief'] = (gn.TASK_HEADER if task_grok else WORKER_HEADER) + req['brief']
+    resources = worker_resources.resolve(req['project'], req['brief'])
+    req['brief'] = (gn.TASK_HEADER if task_grok else WORKER_HEADER) + worker_resources.prompt(resources, req['brief'])
     child_env = environment(req['provider'], req.get('dialect'), req.get('mode'))
     named_grok = req['provider'] == 'grok' and isinstance(req.get('dialect'), dict) and 'id' in req['dialect']
     base = Path(req['project']) / '.pstack' / 'runs'
@@ -464,6 +466,8 @@ def run(raw, on_start=None):
     metric('started')
     for key in ('host', 'source_pin'):
         if key in req: receipt[key] = req[key]
+    save(job / 'resources.json', resources)
+    receipt['artifacts']['resources'] = str(job / 'resources.json')
     save(job / 'receipt.json', receipt)
     if on_start: on_start(dict(receipt))
     (job / 'brief.txt').write_text(req['brief'])

@@ -15,6 +15,8 @@ VERSION = '0.2.0'
 ENTRY_SKILLS = ('poteto-mode', 'setup-pstack')
 RUNNER_SHIM = '#!/bin/sh\nexec python3 "$(dirname "$(readlink -f "$0")")/../runtime/pstack_run.py" "$@"\n'
 
+REPLACED_MANIFEST = 'plugin.json'
+
 def sha(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -106,6 +108,11 @@ def build(root=ROOT):
     for path, source in sorted(original.items()):
         data = source.read_bytes()
         row = {'path': path, 'source_sha256': sha(data), 'status': 'retained'}
+        if path == REPLACED_MANIFEST:
+            # Upstream's Agent Plugins manifest describes pstack; the package writes its own identity below.
+            row.update(status='replaced', package_sha256=None)
+            parity.append(row)
+            continue
         if path.endswith('/SKILL.md'):
             data, body_hash = adapted_skill(data, path)
             row.update(status='adapted', original_body_sha256=body_hash,

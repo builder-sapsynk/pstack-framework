@@ -115,7 +115,7 @@ def validate_run(run, base):
     for key in ('provider', 'model', 'effort', 'transport'):
         if receipt.get(key) != run[key]:
             fail('receipt binding mismatch: ' + key)
-    if receipt.get('status') not in ('complete', 'failed', 'cancelled', 'timed-out'):
+    if receipt.get('status') not in ('complete', 'failed', 'cancelled', 'timed-out', 'limited'):
         fail('receipt requires a terminal outcome')
     if (receipt['status'] == 'complete') != run['success']:
         fail('success differs from terminal receipt')

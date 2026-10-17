@@ -13,11 +13,11 @@ import uuid
 
 KINDS = {'registered', 'requested', 'started', 'observed-running', 'progress',
          'phase-start', 'phase-end', 'complete', 'failed', 'cancellation-requested',
-         'cancelled', 'usage', 'context', 'workflow-start', 'workflow-end'}
-TERMINAL = {'complete', 'failed', 'cancelled'}
+         'cancelled', 'limited', 'usage', 'context', 'workflow-start', 'workflow-end'}
+TERMINAL = {'complete', 'failed', 'cancelled', 'limited'}
 STATE = {'registered': 'requested', 'requested': 'requested', 'started': 'active',
          'observed-running': 'active', 'complete': 'complete', 'failed': 'failed',
-         'cancelled': 'cancelled'}
+         'cancelled': 'cancelled', 'limited': 'limited'}
 METADATA = {'role', 'host', 'provider', 'transport', 'model', 'effort', 'requested',
             'resolved', 'bindingEvidence', 'nativeAgentId', 'job_id', 'stage',
             'phaseId', 'elapsedSeconds', 'modelSeconds', 'apiSeconds', 'toolSeconds',
@@ -174,7 +174,7 @@ def normalize_runner_receipt(receipt):
     state = receipt.get('state')
     status = {'running': 'running', 'succeeded': 'complete', 'killed': 'cancelled',
               'timeout': 'timed-out', 'failed': 'failed', 'startup_timeout': 'failed',
-              'stalled': 'failed', 'lost': 'failed'}.get(state)
+              'stalled': 'failed', 'lost': 'failed', 'limited': 'limited'}.get(state)
     normalized = {'job_id': receipt['task_id']}
     if status is not None:
         normalized['status'] = status
@@ -188,7 +188,7 @@ def normalize_runner_receipt(receipt):
         usage.setdefault('cache_read_input_tokens', usage.get('cached_input_tokens'))
         usage.setdefault('cache_creation_input_tokens', usage.get('cache_write_input_tokens'))
         normalized['metrics'] = {'usage': usage}
-    if status == 'failed':
+    if status in ('failed', 'limited'):
         normalized['failureCode'] = state
     return normalized
 
@@ -205,7 +205,7 @@ def import_receipt(workflow, receipt, *, worker=None, parent_worker=None):
         raise ValueError('receipt requires stable job_id')
     worker = worker or job_id
     status = {'starting': 'requested', 'running': 'observed-running', 'complete': 'complete',
-              'failed': 'failed', 'timed-out': 'failed', 'cancelled': 'cancelled'}.get(receipt.get('status'))
+              'failed': 'failed', 'timed-out': 'failed', 'cancelled': 'cancelled', 'limited': 'limited'}.get(receipt.get('status'))
     if status is None:
         raise ValueError('unsupported receipt status')
     metadata = {key: receipt[key] for key in ('provider', 'transport', 'model', 'effort', 'elapsedSeconds') if key in receipt}
@@ -273,7 +273,7 @@ def summarize(workflow, *, cutoff=None, manifest=None, stale_after=300):
             roots.append(event)
         else:
             groups.setdefault(event['workerId'], []).append(event)
-    counts = dict(spawned=len(groups), active=0, requested=0, complete=0, failed=0, cancelled=0)
+    counts = dict(spawned=len(groups), active=0, requested=0, complete=0, failed=0, cancelled=0, limited=0)
     workers, usages, sample_keys, elapsed, models, tools = {}, {}, {}, [], [], []
     for worker, records in groups.items():
         records.sort(key=lambda event: event['seq'])
@@ -382,7 +382,7 @@ def format_summary(summary):
     def value(item, suffix=''):
         return 'unknown' if item is None else format(item, '.3f').rstrip('0').rstrip('.') + suffix
     counts, tokens = summary['counts'], summary['tokens']
-    line1 = ('Agents: spawned {spawned} active {active} requested {requested} complete {complete} failed {failed} cancelled {cancelled}'
+    line1 = ('Agents: spawned {spawned} active {active} requested {requested} complete {complete} failed {failed} cancelled {cancelled} limited {limited}'
              .format(**counts) + ' | wall ' + value(summary['wallSeconds'], 's') +
              ' | worker elapsed ' + value(summary['workerElapsedSeconds'], 's') +
              ' (measured ' + value(summary.get('knownWorkerElapsedSeconds'), 's') + ' across ' + str(summary.get('workerTimingCoverage', 0)) + ' attempts)')

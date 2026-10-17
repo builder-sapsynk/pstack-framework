@@ -8,7 +8,7 @@ The plugin is `sapsynk-pstack@sapsynk`, served from this repository's `.claude-p
 
 The project commits `CLAUDE.md`, which imports `AGENTS.md`, and `.claude/settings.json`, which enables the plugin, sets the permission mode and runs the pin check at session start. A plugin installed during a session is available from the next session. Project settings and the session-start hook apply only after the owner has accepted Claude Code's trust dialog for the project once. One user installation serves one pin at a time; bootstrap again when switching to a project with a different pin.
 
-Upstream leaf skills carry `disable-model-invocation: true` so a session does not load 49 descriptions. Read a leaf by path from the package root when the router or a playbook names it. `poteto-mode`, `setup-pstack` and the `sapsynk-pstack` entry stay model-invocable.
+Upstream leaf skills carry `disable-model-invocation: true` so a session does not load 54 descriptions. Read a leaf by path from the package root when the router or a playbook names it. `poteto-mode`, `setup-pstack` and the `sapsynk-pstack` entry stay model-invocable.
 
 ## Tool mapping
 

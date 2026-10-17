@@ -69,3 +69,7 @@ Inline work never satisfies a panel seat or an independent review. Those need re
 `pstack-run` starts lean workers by default. Codex runs with `--disable plugins --disable apps`. Claude runs with `--strict-mcp-config --disable-slash-commands`. Grok runs with Cursor and Claude compatibility scanning off. Measured on a one-line prompt, this takes Claude from 34.8k to 15.3k tokens and Codex from 22.3k to 15.0k. Pass `--full-context` when a worker needs the host's skills or connectors.
 
 A brief names the goal, owned paths, exact resource paths, the verification command and what to report. Point at files. Do not paste them. Name a leaf skill by its path under the package root, since a lean worker does not load the skill catalog.
+
+## Worker rules and owner steering
+
+[worker-rules.md](worker-rules.md) holds the standing worker rules (finished runs, checkpoints, usage limits, migrations, Qodo pull requests, databases, pushes) and the owner's routing steering. It applies to every provider and host.

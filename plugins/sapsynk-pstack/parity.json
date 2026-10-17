@@ -1,9 +1,9 @@
 {
   "files": [
     {
-      "package_sha256": "0f94062c113ae8a13b33836e03c42f52a9ddd66189241d3b277b78d15f0479a2",
+      "package_sha256": "b75609951c8a558e74f1eb20e15493933754eb2695fd2059d7f435f913889bb3",
       "path": ".cursor-plugin/plugin.json",
-      "source_sha256": "0f94062c113ae8a13b33836e03c42f52a9ddd66189241d3b277b78d15f0479a2",
+      "source_sha256": "b75609951c8a558e74f1eb20e15493933754eb2695fd2059d7f435f913889bb3",
       "status": "retained"
     },
     {
@@ -19,21 +19,21 @@
       "status": "retained"
     },
     {
-      "package_sha256": "5f8ba41a4ac6f8f6dfd4f3af70903df62bfeefec1dae4e3bb9d1bfb4ffee78a8",
+      "package_sha256": "af549c7ebae71851fb17a676ebc50e67ada9e5578119c8f4ff4b7a01a4f66f45",
       "path": "README.md",
-      "source_sha256": "5f8ba41a4ac6f8f6dfd4f3af70903df62bfeefec1dae4e3bb9d1bfb4ffee78a8",
+      "source_sha256": "af549c7ebae71851fb17a676ebc50e67ada9e5578119c8f4ff4b7a01a4f66f45",
       "status": "retained"
     },
     {
-      "package_sha256": "c0fd0383008da45fc78cfac17b9007d62c42f87ad1c8d5c2fb658b1fd01f7c82",
+      "package_sha256": "3e239e40b7b4b9beb2cf7f3ccc57f2388eb8b69bd1ba8ae888ef87ef6e0e2116",
       "path": "agents/comment-sicko.md",
-      "source_sha256": "c0fd0383008da45fc78cfac17b9007d62c42f87ad1c8d5c2fb658b1fd01f7c82",
+      "source_sha256": "3e239e40b7b4b9beb2cf7f3ccc57f2388eb8b69bd1ba8ae888ef87ef6e0e2116",
       "status": "retained"
     },
     {
-      "package_sha256": "abe41c169ecbfe65641f1725f4188d568e046c0dec7fd2dc271abb594c299201",
+      "package_sha256": "979f18abd000d185a0b4c41a2a4111c0910596a7f5c81cbb571885bc721b2bf7",
       "path": "agents/poteto-agent.md",
-      "source_sha256": "abe41c169ecbfe65641f1725f4188d568e046c0dec7fd2dc271abb594c299201",
+      "source_sha256": "979f18abd000d185a0b4c41a2a4111c0910596a7f5c81cbb571885bc721b2bf7",
       "status": "retained"
     },
     {
@@ -133,69 +133,69 @@
       "status": "retained"
     },
     {
-      "package_sha256": "bbac20e25fb097029e2676ecf3212f4a72f566eaf2b1031b56317aa1e4fdf490",
+      "package_sha256": "86d0330f245d16254a2069955f993c15d96cf29cd1a73690a0164074b7ac1190",
       "path": "docs/guide/01-setup.md",
-      "source_sha256": "bbac20e25fb097029e2676ecf3212f4a72f566eaf2b1031b56317aa1e4fdf490",
+      "source_sha256": "86d0330f245d16254a2069955f993c15d96cf29cd1a73690a0164074b7ac1190",
       "status": "retained"
     },
     {
-      "package_sha256": "379a1b2c9cd2ba54032b2b142563328d0f3d65039f067863d19b1d4c008737f5",
+      "package_sha256": "979f61ca3d44cb8e68affda40327d32797e93fa9cc53ced7444c15e2600897e1",
       "path": "docs/guide/02-poteto-mode.md",
-      "source_sha256": "379a1b2c9cd2ba54032b2b142563328d0f3d65039f067863d19b1d4c008737f5",
+      "source_sha256": "979f61ca3d44cb8e68affda40327d32797e93fa9cc53ced7444c15e2600897e1",
       "status": "retained"
     },
     {
-      "package_sha256": "16f3fe0f7df092a5c69dac90971ef57e63a8a9ae926eed851285c7bfddc0f3fd",
+      "package_sha256": "0090afa9b8670adf175466a2a973ff4349e95ed67d2aa8cebdfc55ff4b7382c9",
       "path": "docs/guide/03-understand.md",
-      "source_sha256": "16f3fe0f7df092a5c69dac90971ef57e63a8a9ae926eed851285c7bfddc0f3fd",
+      "source_sha256": "0090afa9b8670adf175466a2a973ff4349e95ed67d2aa8cebdfc55ff4b7382c9",
       "status": "retained"
     },
     {
-      "package_sha256": "21e820ff73c0b70682aa570a967ede446b4d7caf62e8f391d0dd733ccb74874c",
+      "package_sha256": "31f2abe6e9b29feafd1a9eece8f4fe21992f86b8c19ab2e9b5c11a20f36587e7",
       "path": "docs/guide/04-design.md",
-      "source_sha256": "21e820ff73c0b70682aa570a967ede446b4d7caf62e8f391d0dd733ccb74874c",
+      "source_sha256": "31f2abe6e9b29feafd1a9eece8f4fe21992f86b8c19ab2e9b5c11a20f36587e7",
       "status": "retained"
     },
     {
-      "package_sha256": "6bd421b43a3cf9fec3cd201fd40ce65fd8c657264eac48b0c9a175b6afd7c252",
+      "package_sha256": "a93cc7771f7b35c7b54d0120b6f66e8367794ce6791237e889a30e7585c190fa",
       "path": "docs/guide/05-build-and-clean.md",
-      "source_sha256": "6bd421b43a3cf9fec3cd201fd40ce65fd8c657264eac48b0c9a175b6afd7c252",
+      "source_sha256": "a93cc7771f7b35c7b54d0120b6f66e8367794ce6791237e889a30e7585c190fa",
       "status": "retained"
     },
     {
-      "package_sha256": "c93cd50c0359ce875a82b3f7d64eab102a4b0815dbbecdb8e0e5e910bd2d18e9",
+      "package_sha256": "3ef0eed5ea084dfbbaf1b1ae9e08d84f2c8a2b536ffb3ef5226710bf105f70e6",
       "path": "docs/guide/06-verify-and-ship.md",
-      "source_sha256": "c93cd50c0359ce875a82b3f7d64eab102a4b0815dbbecdb8e0e5e910bd2d18e9",
+      "source_sha256": "3ef0eed5ea084dfbbaf1b1ae9e08d84f2c8a2b536ffb3ef5226710bf105f70e6",
       "status": "retained"
     },
     {
-      "package_sha256": "5033d61e8b4b6fb0b2304b2132f26bf0b6aee685aa4ed53a76a73cf0ac1c3557",
+      "package_sha256": "d7bd33a3d880768688dff4c1c2b5481ca9f0f194f5d97e44b65c9f96624d3ff0",
       "path": "docs/guide/07-overnight.md",
-      "source_sha256": "5033d61e8b4b6fb0b2304b2132f26bf0b6aee685aa4ed53a76a73cf0ac1c3557",
+      "source_sha256": "d7bd33a3d880768688dff4c1c2b5481ca9f0f194f5d97e44b65c9f96624d3ff0",
       "status": "retained"
     },
     {
-      "package_sha256": "a103e293dd6d9513f425feac39547f0c2c049300f36704d80b6d49c958e5a4bb",
+      "package_sha256": "cffa270108189345351aab16835e95540ba3c765bb5f1b8c1de843a96a212421",
       "path": "docs/guide/08-principles.md",
-      "source_sha256": "a103e293dd6d9513f425feac39547f0c2c049300f36704d80b6d49c958e5a4bb",
+      "source_sha256": "cffa270108189345351aab16835e95540ba3c765bb5f1b8c1de843a96a212421",
       "status": "retained"
     },
     {
-      "package_sha256": "b98588a232a38ca7acebbeecb95ac771df1981aed662dcb45c96b4b66ed20ec0",
+      "package_sha256": "157e0c20ad3c657857c2fbbea3afd26895b71b8f68475bc56f4c382dcdd0e118",
       "path": "docs/guide/09-make-it-yours.md",
-      "source_sha256": "b98588a232a38ca7acebbeecb95ac771df1981aed662dcb45c96b4b66ed20ec0",
+      "source_sha256": "157e0c20ad3c657857c2fbbea3afd26895b71b8f68475bc56f4c382dcdd0e118",
       "status": "retained"
     },
     {
-      "package_sha256": "a4662cd98870f08c6abe117a832abe37670ee84f8ed25dcbe7e99ef4eb8e05e0",
+      "package_sha256": "c652474764b08da4a6364d85f5d03cf1fc1cf35e9d7c549348fb66e2d09f7b1f",
       "path": "docs/guide/10-recipes-and-pitfalls.md",
-      "source_sha256": "a4662cd98870f08c6abe117a832abe37670ee84f8ed25dcbe7e99ef4eb8e05e0",
+      "source_sha256": "c652474764b08da4a6364d85f5d03cf1fc1cf35e9d7c549348fb66e2d09f7b1f",
       "status": "retained"
     },
     {
-      "package_sha256": "125f870a93bf830d45bda187f585cec4508cc9ca5121271af58adbe937bbe54f",
+      "package_sha256": "49d92cfe91e01c04bd1150e5b000ee4fd4dfda8ce789b66a9dda98f7e5456e00",
       "path": "docs/guide/README.md",
-      "source_sha256": "125f870a93bf830d45bda187f585cec4508cc9ca5121271af58adbe937bbe54f",
+      "source_sha256": "49d92cfe91e01c04bd1150e5b000ee4fd4dfda8ce789b66a9dda98f7e5456e00",
       "status": "retained"
     },
     {
@@ -235,21 +235,33 @@
       "status": "retained"
     },
     {
+      "package_sha256": "cbf1dc0dfb4a4e3c254eb5362bfb1c9db04517a4b4eec1b3315973f5bbd8325a",
+      "path": "docs/harness/claude-code.md",
+      "source_sha256": "cbf1dc0dfb4a4e3c254eb5362bfb1c9db04517a4b4eec1b3315973f5bbd8325a",
+      "status": "retained"
+    },
+    {
+      "package_sha256": null,
+      "path": "plugin.json",
+      "source_sha256": "68f0ddbdda23d1e663b48c881f1b896305a3dcdc320ff83c65dd24cd9ac6850f",
+      "status": "replaced"
+    },
+    {
       "changes": [
         "native frontmatter",
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "27dcb8206d899379f1fe70e21ec04d0e075c15c5cbbe111564fd76214b023d44",
-      "package_sha256": "bf1b773a190b980af40d8adbbfba09ff62a016bf2f1ddd3f71e8902c2d1ee7a3",
+      "original_body_sha256": "028d7e7b9bd15d24ed1c31fb8ef6f71b246e9dbb16b12d0d194d7d6551d20211",
+      "package_sha256": "3fa761a755f0f8ee5c67492a19ae708a4200ae5deb0b2eab48226a0f5800aea3",
       "path": "skills/architect/SKILL.md",
-      "source_sha256": "691cd39f52c7b613866e6baf9ea0b05451ffa21a6a9b4102f166418b89178fde",
+      "source_sha256": "31f8e97a52bfa5432edd61f68ade2a8632ef0bacbc2d2a6802d7a0e6821944ac",
       "status": "adapted"
     },
     {
-      "package_sha256": "905066f9bbac81c573c2b325be47751d2c0f9325e0a0772bd4384e82dafe9336",
+      "package_sha256": "d0e639e4cc588ec865f930d3a4111faad60987ae36925917e319d7ceca7c69ce",
       "path": "skills/architect/references/design-red-flags.md",
-      "source_sha256": "905066f9bbac81c573c2b325be47751d2c0f9325e0a0772bd4384e82dafe9336",
+      "source_sha256": "d0e639e4cc588ec865f930d3a4111faad60987ae36925917e319d7ceca7c69ce",
       "status": "retained"
     },
     {
@@ -259,9 +271,9 @@
       "status": "retained"
     },
     {
-      "package_sha256": "983bf2820cc14ed8ecab6e448e1033e5cfe6031967d0a9287b48c7fa9c33d925",
+      "package_sha256": "21dd5314aab778c5007228027a4591d97693fbec6ab86524037772b63f40948e",
       "path": "skills/architect/references/runner-prompt.md",
-      "source_sha256": "983bf2820cc14ed8ecab6e448e1033e5cfe6031967d0a9287b48c7fa9c33d925",
+      "source_sha256": "21dd5314aab778c5007228027a4591d97693fbec6ab86524037772b63f40948e",
       "status": "retained"
     },
     {
@@ -270,10 +282,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "4c33cc9f9839e84192633fa1df5788d68bea1fc7835297e5b7f2ca47134d7783",
-      "package_sha256": "9c37588d4020cc6d8d144af5288ed68311bc4b429861960b03d6b1fdaece82fc",
+      "original_body_sha256": "671a645f152d1c5179349beead3208836848a866009659a06b6dc10af5549ae5",
+      "package_sha256": "4eca3b1c343d9365443ecafb5e323944c230302566d113324742218800107dc7",
       "path": "skills/arena/SKILL.md",
-      "source_sha256": "e3a1f6c49a08b7e0b92134e53300d146f1f22ba83386d2019926e736df421851",
+      "source_sha256": "ed72f6c132b1ce3974d949581d0adc5dade424fe20793ac3b4c4fae22ecb9354",
       "status": "adapted"
     },
     {
@@ -282,10 +294,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "8413153bf40def5be7d79a82fb5040778a949f6cb3f516104b1c2013798235a0",
-      "package_sha256": "330675f7300756608f1d918d5f268ab68f84f0a53101c631d7bcfb113be84bcf",
+      "original_body_sha256": "969ac934b1945b48eab30861da7d81805d631a8c782950388fd234b3152eba40",
+      "package_sha256": "2e7058de76c9b3865e142f776664f24713fc7d56338fe7fff4f843c76ac4e4df",
       "path": "skills/automate-me/SKILL.md",
-      "source_sha256": "1510979b0b71b54284427a19c09918f8b1fdfc168f9b7f9e30098793a5ec88ef",
+      "source_sha256": "30b35f3628c4fd8c11af0ada06d14cdc3b28901810caca2480f627d4d21acfbe",
       "status": "adapted"
     },
     {
@@ -294,10 +306,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "13bb8ce9852b54fdb1be48ddbdeb8ded3b3c9c5cc8948d492027baf585f59f18",
-      "package_sha256": "29db449402c2617c1740ec41f42153210b838dc454eaaa40086411a3a01bff45",
+      "original_body_sha256": "e905d944f094471f5e5974075423d0128b0f484e354b78fd71c07c6982064c3b",
+      "package_sha256": "4f4641caee427b557e7ab445f8300b750cacec1003d44d73dc9a89c2b0ae745f",
       "path": "skills/benchmark-checklist/SKILL.md",
-      "source_sha256": "47f0c952d4bba67305ce838f2af5fb88f721497568e4d2d40e1d95af1d97b1af",
+      "source_sha256": "ba109e96c8f6c1c391baccf19e5d11e14370df7b3f2605e1572cd565a6c0fca0",
       "status": "adapted"
     },
     {
@@ -306,10 +318,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "119263139d181b4eacddc1a84b6cf0cc141676a67177cfb9983a889ace8f0478",
-      "package_sha256": "f9ed496194832299e0762bef7fe2ead4e7e33288f560b862d072954ee83297e5",
+      "original_body_sha256": "0312c17e21d6e4a9e217f95cbe3d50eedbc8c273007f305a009d77699a54dc4a",
+      "package_sha256": "2c3c115378d93534f9ade4a28b59a98512e32804783ff9d668876f2c4690073b",
       "path": "skills/blast-radius/SKILL.md",
-      "source_sha256": "5f02db9101ccf26c20254718f0fcd5c2c7ac5d4292b0e0923d0944ac47237aff",
+      "source_sha256": "2e10745b97f5862323dcda3b29ca60d56b5c3c98e37020085d26b48efbe0a436",
       "status": "adapted"
     },
     {
@@ -330,10 +342,22 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "5f8f1b1000ed758385abc17098aa749800c916396ad7d36dae93dcfe53ef0f0a",
-      "package_sha256": "e5e49cfb7e6ce5828e32794fcc1a840a44fa5240e8defb7d0f6269be07e13f91",
+      "original_body_sha256": "36301528599ae2324a7b396fce778b5bbcf89e1cd8c588a49f8cbf797aed1543",
+      "package_sha256": "8b82e072240dcc33a65f5ea34e11cf9ee71e2b186bb394d5b34cfb692fe182c4",
+      "path": "skills/correct/SKILL.md",
+      "source_sha256": "e347045d00c967a0b831ef883cc6ac79d21329aa10b5968637df95de7febf0ba",
+      "status": "adapted"
+    },
+    {
+      "changes": [
+        "native frontmatter",
+        "explicit-only leaf invocation",
+        "host adapter preamble"
+      ],
+      "original_body_sha256": "50e4a269628b5e7f6e983b7bf8345e9afe0110765827753367c4ff406a611f22",
+      "package_sha256": "6238294d14ced3b969e0121e1a6152cdadc084f3a0b4f3e8d1a23908f144638f",
       "path": "skills/create-verification-skill/SKILL.md",
-      "source_sha256": "644f2551403c1bca01a2855b34611b6e7be0ce0dc5b204514c376c0f6a6e6ac4",
+      "source_sha256": "d353973547bf8ad8977eca645f4cd4feaed0d32f4b43d1448f906b0a76c4d694",
       "status": "adapted"
     },
     {
@@ -360,10 +384,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "d37774d594eb7c351f3e2f6cf711700e58b3f8c9e0d10e94b54237e62c8c4ae9",
-      "package_sha256": "5e24dfef3fa1f68f02f810b1c31817924a635e0a05dc65fce599f418c4b6fe8e",
+      "original_body_sha256": "8e45f1d3ee941f7e24e7476a276926e4f43570b2420ded0522e0abb710820eeb",
+      "package_sha256": "3e9365f9151e2157ed2da54b61f40d4089b244c391d80a806985e070fa8be1d8",
       "path": "skills/figure-it-out/SKILL.md",
-      "source_sha256": "0eb9485f0e7d84fee56b5d0f0af0faf4635e3ca87c8cba3970c01293b76ecc19",
+      "source_sha256": "bdb23cdbd82a1e6af094b495691c832a6f7f3ab9706ba9edbeb664ef51a726e1",
       "status": "adapted"
     },
     {
@@ -372,10 +396,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "59859ebccf2b3eb14bc8eee9e46ba78879a0a16412359beac3ee8e22784162ee",
-      "package_sha256": "3c83e221e8ed6670609470507ae1ae224562352232baa228556ed103a2c20d55",
+      "original_body_sha256": "2917642869ad02f874c32027ab0353b404b88a0c57fdced786ce180f68d0ce45",
+      "package_sha256": "26551eb5608a7caafbabd3077f21d0ded756896b991f6eaf45cb02a78a726a34",
       "path": "skills/how/SKILL.md",
-      "source_sha256": "d31805589c7f6a63a6db6c9fadebbd79fb9660682cf1654e9b2e5e1e7cd30bc0",
+      "source_sha256": "08a00079bb15b4258874ac3ff62d4ca7e94350ffedb521d0fd296dc9dd21904e",
       "status": "adapted"
     },
     {
@@ -385,9 +409,9 @@
       "status": "retained"
     },
     {
-      "package_sha256": "a3b44a6e5bb16a6d4d1cac19db8ed5322ffd5f5f5d45baca4e73990ca096f8be",
+      "package_sha256": "6300128385ee940fd42ecb84b0e623435440a2dc283eae54ee4a52ba56947ba1",
       "path": "skills/how/references/explorer-prompt.md",
-      "source_sha256": "a3b44a6e5bb16a6d4d1cac19db8ed5322ffd5f5f5d45baca4e73990ca096f8be",
+      "source_sha256": "6300128385ee940fd42ecb84b0e623435440a2dc283eae54ee4a52ba56947ba1",
       "status": "retained"
     },
     {
@@ -396,10 +420,22 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "d2e3abe452c03124f9997c0868e65724a6891d163af3adce034d5aee3e5f26e0",
-      "package_sha256": "a32da79c92135c5f725ab365a0aaf64894f20ccc4844a77535ce0e8f1beca3af",
+      "original_body_sha256": "710dc1ea4834e7d8a12bc51cdd39eb0e7aa9424f5191fe86097b887bdc78531b",
+      "package_sha256": "8157dcec0a74ff4b72cc73fc63870676737b33664a876ecced64590ef77c8d17",
+      "path": "skills/in-your-own-words/SKILL.md",
+      "source_sha256": "fa8ba74e27d7be371dc270ec78bbf816411477d0dfab185356c861ac8dd413ad",
+      "status": "adapted"
+    },
+    {
+      "changes": [
+        "native frontmatter",
+        "explicit-only leaf invocation",
+        "host adapter preamble"
+      ],
+      "original_body_sha256": "04746cf3ba52792948c277e96be4a1f44b4ccac7b38be2c90f3759b25f4cef60",
+      "package_sha256": "f600e9a6433785e98996ab23ecd7869d80860f23ef4645a3d5770e7ef5902d52",
       "path": "skills/interrogate/SKILL.md",
-      "source_sha256": "59d498c3e9848a24b2d105eb3f05b808aa4152adf4cb1de7bbb6aff4f4cd9b68",
+      "source_sha256": "a16dfe179005abc22a4651b82f25b0c8ab953284276efe4e6dc341958fb63647",
       "status": "adapted"
     },
     {
@@ -409,22 +445,34 @@
       "status": "retained"
     },
     {
-      "package_sha256": "6e5bdf5670eb34017692e9b6c546f36ac7552e6bb9f3f2f3429164fcc46a9361",
+      "package_sha256": "355f5195a76bc75a655125292369f2a8231a2b61fabe5188d8f1386060922b87",
       "path": "skills/interrogate/references/lead-judgment.md",
-      "source_sha256": "6e5bdf5670eb34017692e9b6c546f36ac7552e6bb9f3f2f3429164fcc46a9361",
+      "source_sha256": "355f5195a76bc75a655125292369f2a8231a2b61fabe5188d8f1386060922b87",
       "status": "retained"
     },
     {
-      "package_sha256": "e0598e254792b56de39bb16b1e6db559b03a522fdc54b98f942d254090920ae6",
+      "package_sha256": "f6005cc2b535006fca97a96c5bfda49df57312eedf1ffd8d1aaaf3eb33817c25",
       "path": "skills/interrogate/references/reviewer-prompt.md",
-      "source_sha256": "e0598e254792b56de39bb16b1e6db559b03a522fdc54b98f942d254090920ae6",
+      "source_sha256": "f6005cc2b535006fca97a96c5bfda49df57312eedf1ffd8d1aaaf3eb33817c25",
       "status": "retained"
     },
     {
-      "package_sha256": "a85aa801abbaf14434f00579440abc0d8e2723227ba8bf57de7cca8d6e7d2f25",
+      "package_sha256": "0f9c6bdb0b96e26dbde5f6407f417e0c02f54080e7a1268d8994f3c3ec6c5ac0",
       "path": "skills/interrogate/references/rubric.md",
-      "source_sha256": "a85aa801abbaf14434f00579440abc0d8e2723227ba8bf57de7cca8d6e7d2f25",
+      "source_sha256": "0f9c6bdb0b96e26dbde5f6407f417e0c02f54080e7a1268d8994f3c3ec6c5ac0",
       "status": "retained"
+    },
+    {
+      "changes": [
+        "native frontmatter",
+        "explicit-only leaf invocation",
+        "host adapter preamble"
+      ],
+      "original_body_sha256": "9cae1937f2f77767770ae2615d535123a29b6ac573b6f23d1869a44be744c4d7",
+      "package_sha256": "abd1731d5d88a76f2ad32ba8bc2682c38240284f1722b4f6b78c50b7f62b0056",
+      "path": "skills/ketchup/SKILL.md",
+      "source_sha256": "47b3fb0d5626a40fcb3bd016e68f1cb3d2d313351183e8f6c05d4c7abd76e665",
+      "status": "adapted"
     },
     {
       "changes": [
@@ -456,10 +504,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "938715f6a07fcc0b0fdbb2b2c55996496d06eecc73a269f0fcfc85c52232051b",
-      "package_sha256": "dfcb5d40b74d905b8c18f1bcbec50cba326384593622c6e6b4b64450c699986a",
+      "original_body_sha256": "226e3772fdcc8fc6e8ee6aec3c0c985829af0c8e441e47f16f4adec8f177cea7",
+      "package_sha256": "5316e6527310908cb25ab3a6c4aed7b3191f5c495dcf6298f861cb8e155bc429",
       "path": "skills/no-comments/SKILL.md",
-      "source_sha256": "5c5b0882297d704c3a9720c52b7a793c68b013eaf717989f0945624efdfe2b05",
+      "source_sha256": "078ecfe224eafbb017f6476870612838bf6dbe38c0b697e12f0c887d0313f17e",
       "status": "adapted"
     },
     {
@@ -468,10 +516,34 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "570a9ecb09044f2b4c3553a6b9a7b1271851d851573ae4fdd43996fd001ae8c7",
-      "package_sha256": "13c474cc568b32a6ff003ac79b44d6078a3741e268a9c3aa17e6f01f7919993e",
+      "original_body_sha256": "c30d2fd30db348a90f1d8684ede8f06cf4b5025cec074719b4a803442157661e",
+      "package_sha256": "ea4f67f1b2ce81db651ff122544f17fcd6566a552fdf22f94aaf78f7d790705b",
+      "path": "skills/poteto-help/SKILL.md",
+      "source_sha256": "1b0645c25200a19e5863583e117bad684b1b79ba8434823ebf4f6bbcc61e8a75",
+      "status": "adapted"
+    },
+    {
+      "package_sha256": "463f450c44a60afd001a2f69fdf8a5dea174351f339369b12ec3c41515e564d3",
+      "path": "skills/poteto-help/references/prompting.md",
+      "source_sha256": "463f450c44a60afd001a2f69fdf8a5dea174351f339369b12ec3c41515e564d3",
+      "status": "retained"
+    },
+    {
+      "package_sha256": "5fb97a805976a82db0aba5cc8943e88d0cb38b17a0d6b8e89a44633677febb1a",
+      "path": "skills/poteto-help/references/recipes.md",
+      "source_sha256": "5fb97a805976a82db0aba5cc8943e88d0cb38b17a0d6b8e89a44633677febb1a",
+      "status": "retained"
+    },
+    {
+      "changes": [
+        "native frontmatter",
+        "explicit-only leaf invocation",
+        "host adapter preamble"
+      ],
+      "original_body_sha256": "afdada02e159b3c5b61fc25e2185a63d9a22b2e4d7dec6182ca0205a6a7e7200",
+      "package_sha256": "313e01bf6e2cee01981e5b483e6326a5d241e2928f3c8a8a6e6922104e3520e9",
       "path": "skills/poteto-mode/SKILL.md",
-      "source_sha256": "404c0ef4a78e93451b2ab555ca532e7197b5cf87de29205b6f7109dbee5d9c4d",
+      "source_sha256": "c5e6b605f46e5d9fbab31afa7a99d3d50680f2180d1fdfae3a924901bc52d99a",
       "status": "adapted"
     },
     {
@@ -481,51 +553,51 @@
       "status": "retained"
     },
     {
-      "package_sha256": "15e54ad3ac92565613980772d8708de6e19cc4690bfd4bb3fb8836522407377b",
+      "package_sha256": "6ac974fd2b09748add56493e89f578a35a6a9289e1026515878d81ef3cf129d1",
       "path": "skills/poteto-mode/playbooks/autonomous-run.md",
-      "source_sha256": "15e54ad3ac92565613980772d8708de6e19cc4690bfd4bb3fb8836522407377b",
+      "source_sha256": "6ac974fd2b09748add56493e89f578a35a6a9289e1026515878d81ef3cf129d1",
       "status": "retained"
     },
     {
-      "package_sha256": "05ca30a16242c19d0c78ba1e88cca66f858d75252cb154fd740099fe292de802",
+      "package_sha256": "acf4f4a58c11045f9d3e8807d907a877e61ca6432b079f1087d7d30fc931566f",
       "path": "skills/poteto-mode/playbooks/autopilot-full.md",
-      "source_sha256": "05ca30a16242c19d0c78ba1e88cca66f858d75252cb154fd740099fe292de802",
+      "source_sha256": "acf4f4a58c11045f9d3e8807d907a877e61ca6432b079f1087d7d30fc931566f",
       "status": "retained"
     },
     {
-      "package_sha256": "007c0a3b12011954a224f54773ef4ad7b75918be0a311914c1b51ad4e794c1e5",
+      "package_sha256": "c6bcb18b2ce605e77a2a2225854590a4b9a687911f79331746d91a4fe9a52e60",
       "path": "skills/poteto-mode/playbooks/autopilot-stack.md",
-      "source_sha256": "007c0a3b12011954a224f54773ef4ad7b75918be0a311914c1b51ad4e794c1e5",
+      "source_sha256": "c6bcb18b2ce605e77a2a2225854590a4b9a687911f79331746d91a4fe9a52e60",
       "status": "retained"
     },
     {
-      "package_sha256": "a0346c37c2313f36a863b80f66ee7b98059c2242adf74fc7b3e48abdb9ec6f5a",
+      "package_sha256": "e261c1ff5581e0f8fc6c686f34de4b535f87473e77beabea7dd8323021214610",
       "path": "skills/poteto-mode/playbooks/babysit.md",
-      "source_sha256": "a0346c37c2313f36a863b80f66ee7b98059c2242adf74fc7b3e48abdb9ec6f5a",
+      "source_sha256": "e261c1ff5581e0f8fc6c686f34de4b535f87473e77beabea7dd8323021214610",
       "status": "retained"
     },
     {
-      "package_sha256": "018bbc146ae19145caa6c7e70591fee081b64447dda1c1c4b681c9974d928b13",
+      "package_sha256": "66e26542dad131cfd7df80ac0cdf81ed4d85e7b5e3f0eb65b933888760c4831f",
       "path": "skills/poteto-mode/playbooks/bug-fix.md",
-      "source_sha256": "018bbc146ae19145caa6c7e70591fee081b64447dda1c1c4b681c9974d928b13",
+      "source_sha256": "66e26542dad131cfd7df80ac0cdf81ed4d85e7b5e3f0eb65b933888760c4831f",
       "status": "retained"
     },
     {
-      "package_sha256": "b862bfa2fae2399abf047a8e80d3e3dddb64003af96fb1cebb625216131e36bb",
+      "package_sha256": "a93d449a908236afa6645179651844094b1547dbab4e484cffcdda630e4b90bf",
       "path": "skills/poteto-mode/playbooks/eval.md",
-      "source_sha256": "b862bfa2fae2399abf047a8e80d3e3dddb64003af96fb1cebb625216131e36bb",
+      "source_sha256": "a93d449a908236afa6645179651844094b1547dbab4e484cffcdda630e4b90bf",
       "status": "retained"
     },
     {
-      "package_sha256": "3a62cc4a8cbcf144bb9dd05f05420a15be0d38b784d3b141bb730a5852f50a62",
+      "package_sha256": "af8ce700b99953741cb547e34308fde0cf6b98ce67e1652c800d0deedf53aba1",
       "path": "skills/poteto-mode/playbooks/feature.md",
-      "source_sha256": "3a62cc4a8cbcf144bb9dd05f05420a15be0d38b784d3b141bb730a5852f50a62",
+      "source_sha256": "af8ce700b99953741cb547e34308fde0cf6b98ce67e1652c800d0deedf53aba1",
       "status": "retained"
     },
     {
-      "package_sha256": "eaa8584c50eb6ca592b68329b366b0c9954c2817272675839909df8008ebb91b",
+      "package_sha256": "942c1565b75ad02a2cb6230dd7c1ebd87e19f59a00319ebac2b6616007bf018f",
       "path": "skills/poteto-mode/playbooks/hillclimb.md",
-      "source_sha256": "eaa8584c50eb6ca592b68329b366b0c9954c2817272675839909df8008ebb91b",
+      "source_sha256": "942c1565b75ad02a2cb6230dd7c1ebd87e19f59a00319ebac2b6616007bf018f",
       "status": "retained"
     },
     {
@@ -535,21 +607,21 @@
       "status": "retained"
     },
     {
-      "package_sha256": "27d310e3fc3937a60b8fcbe1318f9d249a7477a722907bf85b3e4eb3dc436b11",
+      "package_sha256": "5f239457bfdec3345c92caa06c59bf0257c662b89353f25a1c02ea942dcd00b1",
       "path": "skills/poteto-mode/playbooks/multi-phase-plan.md",
-      "source_sha256": "27d310e3fc3937a60b8fcbe1318f9d249a7477a722907bf85b3e4eb3dc436b11",
+      "source_sha256": "5f239457bfdec3345c92caa06c59bf0257c662b89353f25a1c02ea942dcd00b1",
       "status": "retained"
     },
     {
-      "package_sha256": "ab40de7163c1c6e274f46ee559b2e53ef45673703f601f13f4931c199e6fb90f",
+      "package_sha256": "a5aef646de8b651306c2d10974623650e4a013a245aec1c00525bbe0e31bfa76",
       "path": "skills/poteto-mode/playbooks/opening-a-pr.md",
-      "source_sha256": "ab40de7163c1c6e274f46ee559b2e53ef45673703f601f13f4931c199e6fb90f",
+      "source_sha256": "a5aef646de8b651306c2d10974623650e4a013a245aec1c00525bbe0e31bfa76",
       "status": "retained"
     },
     {
-      "package_sha256": "d42b4375f1bd4ce23da0b575a198571a2117df7eea10c3c9fc6d92ae1053f7be",
+      "package_sha256": "08dce6c9e7be1d13bc6944ab9b51665f935c531437f5e088bc53d2a62099ef05",
       "path": "skills/poteto-mode/playbooks/orchestrate.md",
-      "source_sha256": "d42b4375f1bd4ce23da0b575a198571a2117df7eea10c3c9fc6d92ae1053f7be",
+      "source_sha256": "08dce6c9e7be1d13bc6944ab9b51665f935c531437f5e088bc53d2a62099ef05",
       "status": "retained"
     },
     {
@@ -559,9 +631,9 @@
       "status": "retained"
     },
     {
-      "package_sha256": "eaa538252e762331d46c6a48728c2187a3485c8ec86c99264b36ab5af6f7fb42",
+      "package_sha256": "c12aa2f82de7651a11676a3d5fea168f539b7f0faaa3a501d279255dd2a469c8",
       "path": "skills/poteto-mode/playbooks/perf-issue.md",
-      "source_sha256": "eaa538252e762331d46c6a48728c2187a3485c8ec86c99264b36ab5af6f7fb42",
+      "source_sha256": "c12aa2f82de7651a11676a3d5fea168f539b7f0faaa3a501d279255dd2a469c8",
       "status": "retained"
     },
     {
@@ -571,33 +643,33 @@
       "status": "retained"
     },
     {
-      "package_sha256": "50f4f7d3d301551f8b8a57c3303c99958c5ca630ae0d0051823b6987c0eb5b96",
+      "package_sha256": "0f5dd38113379ea8cf61e2182eca0a7478eea9a869eb40c2dddab3335aeca197",
       "path": "skills/poteto-mode/playbooks/refactoring.md",
-      "source_sha256": "50f4f7d3d301551f8b8a57c3303c99958c5ca630ae0d0051823b6987c0eb5b96",
+      "source_sha256": "0f5dd38113379ea8cf61e2182eca0a7478eea9a869eb40c2dddab3335aeca197",
       "status": "retained"
     },
     {
-      "package_sha256": "594f02c40c243a346e1f57b688ecf2ed5e882f21b3d24ed2204d1ac6f1c24a8a",
+      "package_sha256": "3463372b578c28f27c236f2627f09b5c5b1e85e86db7399fb984f3892fb450f5",
       "path": "skills/poteto-mode/playbooks/runtime-forensics.md",
-      "source_sha256": "594f02c40c243a346e1f57b688ecf2ed5e882f21b3d24ed2204d1ac6f1c24a8a",
+      "source_sha256": "3463372b578c28f27c236f2627f09b5c5b1e85e86db7399fb984f3892fb450f5",
       "status": "retained"
     },
     {
-      "package_sha256": "1604fb463f7c7410d43fa024ca76c1c1824c166a01fd69d61f073d06fdca2a47",
+      "package_sha256": "d194f2a7ef392c1598ef3f0e3b561370ca25c2c7a78308007af4aa46ada8ee12",
       "path": "skills/poteto-mode/playbooks/session-pickup.md",
-      "source_sha256": "1604fb463f7c7410d43fa024ca76c1c1824c166a01fd69d61f073d06fdca2a47",
+      "source_sha256": "d194f2a7ef392c1598ef3f0e3b561370ca25c2c7a78308007af4aa46ada8ee12",
       "status": "retained"
     },
     {
-      "package_sha256": "19f3f6803a7bbe9ff04f624b03e3b55f07ac0a05e991aa00d5fe51239b920b2a",
+      "package_sha256": "bf56339bdf7e0223bcff5abf4e8599e3f5b547b3fcc3b4ce9475e6e7dda14a9f",
       "path": "skills/poteto-mode/playbooks/shipping.md",
-      "source_sha256": "19f3f6803a7bbe9ff04f624b03e3b55f07ac0a05e991aa00d5fe51239b920b2a",
+      "source_sha256": "bf56339bdf7e0223bcff5abf4e8599e3f5b547b3fcc3b4ce9475e6e7dda14a9f",
       "status": "retained"
     },
     {
-      "package_sha256": "137ce3984fb96e45971fdff4d3c79fa4ccc647c5b30ae4945783b9fb23f8cec7",
+      "package_sha256": "ef0bbf79856a4ae1a8993d54c1a1da159cb97623941b652c0069cf75a017e0f5",
       "path": "skills/poteto-mode/playbooks/trace-forensics.md",
-      "source_sha256": "137ce3984fb96e45971fdff4d3c79fa4ccc647c5b30ae4945783b9fb23f8cec7",
+      "source_sha256": "ef0bbf79856a4ae1a8993d54c1a1da159cb97623941b652c0069cf75a017e0f5",
       "status": "retained"
     },
     {
@@ -607,9 +679,9 @@
       "status": "retained"
     },
     {
-      "package_sha256": "fc464dc4121926df1704f483c5feca83717c0a40b4651d3e11bd3aedd89441b6",
+      "package_sha256": "be04ae0afe19d4a4da5bcc4e94455f68dbebd1cda6eb0f456ca0d358ecf76c00",
       "path": "skills/poteto-mode/playbooks/worktree-cleanup.md",
-      "source_sha256": "fc464dc4121926df1704f483c5feca83717c0a40b4651d3e11bd3aedd89441b6",
+      "source_sha256": "be04ae0afe19d4a4da5bcc4e94455f68dbebd1cda6eb0f456ca0d358ecf76c00",
       "status": "retained"
     },
     {
@@ -631,33 +703,39 @@
       "status": "retained"
     },
     {
-      "package_sha256": "4f9432d9989880b6afc2bdda503d5b12a9d07d357ecf31936b7ab5e83bc80523",
+      "package_sha256": "e58c3d871b09d477be00628d69dd23ffa6c2e3a1728f5b867a841baa8e90278b",
       "path": "skills/poteto-mode/scripts/check-plan.mjs",
-      "source_sha256": "4f9432d9989880b6afc2bdda503d5b12a9d07d357ecf31936b7ab5e83bc80523",
+      "source_sha256": "e58c3d871b09d477be00628d69dd23ffa6c2e3a1728f5b867a841baa8e90278b",
       "status": "retained"
     },
     {
-      "package_sha256": "174b86d21ff51ccd28d1a8c938cb2e0c6fa287b209d4ca6c03932fcb1b53372e",
+      "package_sha256": "c80f3ea043b81f219b92c4c8a3af6bdd4f8d32ea596ec15b5b9e0252645f2ae8",
+      "path": "skills/poteto-mode/scripts/check-plan.test.ts",
+      "source_sha256": "c80f3ea043b81f219b92c4c8a3af6bdd4f8d32ea596ec15b5b9e0252645f2ae8",
+      "status": "retained"
+    },
+    {
+      "package_sha256": "5e80b416bdcd68e4067690ce857345852fd2e0db3dcf3e25607999cd55b963d2",
       "path": "skills/poteto-mode/scripts/orch/orch.test.ts",
-      "source_sha256": "174b86d21ff51ccd28d1a8c938cb2e0c6fa287b209d4ca6c03932fcb1b53372e",
+      "source_sha256": "5e80b416bdcd68e4067690ce857345852fd2e0db3dcf3e25607999cd55b963d2",
       "status": "retained"
     },
     {
-      "package_sha256": "f091687df627a0b75fabd54af58945a9cd6c7039ef0622012ac9ed60cd8ec434",
+      "package_sha256": "47c92c57e8276616d8de94665a126bd832e748036afa8d0ffdbacb7946decb5c",
       "path": "skills/poteto-mode/scripts/orch/orch.ts",
-      "source_sha256": "f091687df627a0b75fabd54af58945a9cd6c7039ef0622012ac9ed60cd8ec434",
+      "source_sha256": "47c92c57e8276616d8de94665a126bd832e748036afa8d0ffdbacb7946decb5c",
       "status": "retained"
     },
     {
-      "package_sha256": "0eae7cf69282e827b1227166f2e32cee3560f2f3e65b3f1f2faf6fb83d3b4c5b",
+      "package_sha256": "558cfda533e1ebe7c8d7842604f07e0be7618759cf129b4c2397a8e29516ecea",
       "path": "skills/poteto-mode/scripts/orch/store.ts",
-      "source_sha256": "0eae7cf69282e827b1227166f2e32cee3560f2f3e65b3f1f2faf6fb83d3b4c5b",
+      "source_sha256": "558cfda533e1ebe7c8d7842604f07e0be7618759cf129b4c2397a8e29516ecea",
       "status": "retained"
     },
     {
-      "package_sha256": "d1f815091209d49763775cc188e8e06ff32d5fec648bffd2272bc25a165e87c3",
+      "package_sha256": "fd511a0c01f522e0c781ddd8eccea0e91697a0856c6e6a3261de78a6a0287c72",
       "path": "skills/poteto-mode/scripts/package.json",
-      "source_sha256": "d1f815091209d49763775cc188e8e06ff32d5fec648bffd2272bc25a165e87c3",
+      "source_sha256": "fd511a0c01f522e0c781ddd8eccea0e91697a0856c6e6a3261de78a6a0287c72",
       "status": "retained"
     },
     {
@@ -673,33 +751,33 @@
       "status": "retained"
     },
     {
-      "package_sha256": "e53e31b7f03068063f53a99a3591b052aaed66e4e2b196b3a364980f60324ab1",
+      "package_sha256": "cf0c5ee61b4a73444c1b775cfb6c81a40d312e055dd21a1f5eae6276e54de13f",
       "path": "skills/poteto-mode/scripts/watch-pr/fakes.test-helper.ts",
-      "source_sha256": "e53e31b7f03068063f53a99a3591b052aaed66e4e2b196b3a364980f60324ab1",
+      "source_sha256": "cf0c5ee61b4a73444c1b775cfb6c81a40d312e055dd21a1f5eae6276e54de13f",
       "status": "retained"
     },
     {
-      "package_sha256": "0cbce011050522938523e36bb42a260e92b812dcd2076930fa681672ad316b24",
+      "package_sha256": "70c9f03d8738228763846f2abdd8c7de7be68dba3035041482386a69cbf5639b",
       "path": "skills/poteto-mode/scripts/watch-pr/github.test.ts",
-      "source_sha256": "0cbce011050522938523e36bb42a260e92b812dcd2076930fa681672ad316b24",
+      "source_sha256": "70c9f03d8738228763846f2abdd8c7de7be68dba3035041482386a69cbf5639b",
       "status": "retained"
     },
     {
-      "package_sha256": "d1bbbafbe8e2c703c84da2029de7f2c4011412512f8cf65a42100f46bcb92c8a",
+      "package_sha256": "a605b8531468dbe4c07b93663c0993a9c11dc7e9179adde970f5c740396451d9",
       "path": "skills/poteto-mode/scripts/watch-pr/github.ts",
-      "source_sha256": "d1bbbafbe8e2c703c84da2029de7f2c4011412512f8cf65a42100f46bcb92c8a",
+      "source_sha256": "a605b8531468dbe4c07b93663c0993a9c11dc7e9179adde970f5c740396451d9",
       "status": "retained"
     },
     {
-      "package_sha256": "a9fedb25feefd1f57ef6a662f80c99018690170a3a8070773a08eaf694d1d3d9",
+      "package_sha256": "146acabcfee9b6fa3342358eb0a9504aa65fd081bbc15b10adf9c1c5485067d2",
       "path": "skills/poteto-mode/scripts/watch-pr/policy.test.ts",
-      "source_sha256": "a9fedb25feefd1f57ef6a662f80c99018690170a3a8070773a08eaf694d1d3d9",
+      "source_sha256": "146acabcfee9b6fa3342358eb0a9504aa65fd081bbc15b10adf9c1c5485067d2",
       "status": "retained"
     },
     {
-      "package_sha256": "68d240505852cf23c9b2dea463342e9e61243f486b3cc86c735d140f9ee7be49",
+      "package_sha256": "f2a3e31223d05edc05e5473cc3f8f3cb9bd20c202c30c6abe7f21f0f7aee8fbb",
       "path": "skills/poteto-mode/scripts/watch-pr/policy.ts",
-      "source_sha256": "68d240505852cf23c9b2dea463342e9e61243f486b3cc86c735d140f9ee7be49",
+      "source_sha256": "f2a3e31223d05edc05e5473cc3f8f3cb9bd20c202c30c6abe7f21f0f7aee8fbb",
       "status": "retained"
     },
     {
@@ -721,9 +799,9 @@
       "status": "retained"
     },
     {
-      "package_sha256": "64ba6221e3bfe61bbb292337d199cdec6309455477280efb060203dba34e0e91",
+      "package_sha256": "0cac435294dc85ce1ba755e8e67f6c5ab163dfa252f2722d6e3a2d68c58fec59",
       "path": "skills/poteto-mode/scripts/watch-pr/types.ts",
-      "source_sha256": "64ba6221e3bfe61bbb292337d199cdec6309455477280efb060203dba34e0e91",
+      "source_sha256": "0cac435294dc85ce1ba755e8e67f6c5ab163dfa252f2722d6e3a2d68c58fec59",
       "status": "retained"
     },
     {
@@ -733,9 +811,9 @@
       "status": "retained"
     },
     {
-      "package_sha256": "95b8530f3c0ccada8cabc4b0727c052fbc85c141531375aaace65c427af8aecc",
+      "package_sha256": "e0a94e5e5b1ff60638916e440600e15851f7b79bc1a1d1f602fde05d465e2ec0",
       "path": "skills/poteto-mode/scripts/worktree-audit.sh",
-      "source_sha256": "95b8530f3c0ccada8cabc4b0727c052fbc85c141531375aaace65c427af8aecc",
+      "source_sha256": "e0a94e5e5b1ff60638916e440600e15851f7b79bc1a1d1f602fde05d465e2ec0",
       "status": "retained"
     },
     {
@@ -744,10 +822,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "d5417804f6138d006df2fc50d49d94796ca7a9e2ac2deececad6bde5a6f7004e",
-      "package_sha256": "b99765978e6796f4004e3426d84e0912ecfef9c43d9ff5982d30d539c6dd066f",
+      "original_body_sha256": "8dad3d0b50c91700efcfdf4684d9855defb3f693facb6f87f575f66644397b39",
+      "package_sha256": "7932cb298783abb8a096f9371c5defbca6c92121b51da2a53cc46a8b277f4355",
       "path": "skills/principle-attack-the-premise/SKILL.md",
-      "source_sha256": "c87bd7536f772f8a403ad8155535ee17a1bbec9a353156693eb3bb1520c87ae3",
+      "source_sha256": "6a932884daad4aa189e9b5d1665226bbc75621d4d2a398fd4003bebd382f4599",
       "status": "adapted"
     },
     {
@@ -768,10 +846,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "0e6eaa23080e503cef814dc0d01fffe1893b738bbc6b542afb2f1ce3da3c7a4e",
-      "package_sha256": "c33756e437446f89fc025902be7bf56f791b148b7f79fd6bab9621887bdfc775",
+      "original_body_sha256": "177c894df9c8aa43af2d57e6ec476eae73d74d5612500d2bde6ce35086111f6b",
+      "package_sha256": "d675345cfeeb23ae92b454c408a95cee1001f67342bdf0dd0558841f2bce25fd",
       "path": "skills/principle-build-the-lever/SKILL.md",
-      "source_sha256": "458b269eab8e95a1573276955312f7d2a13ae8599879a9efc748248f6bc34b56",
+      "source_sha256": "3434b0ad0c640c6f1d7960be7a8986c3bcdc14e26060360dec29903df60074ff",
       "status": "adapted"
     },
     {
@@ -780,10 +858,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "a4c2a02d1e4a0e97d8b5ff2343228e0f0c504e87c9173b6cdb1f96f3918a3e63",
-      "package_sha256": "064df17be4e626d0d438496f8a866443fc5d70d52fb1f29346a2c6925ae4e87e",
+      "original_body_sha256": "0daaf085c4ef6899a74f05d1b160773a7ca5bfc439cddca970bc2d2f9493df46",
+      "package_sha256": "b8615077c521dc84d1f7e19aeaa1c75a325058327d59a52db583e783df1dbc97",
       "path": "skills/principle-encode-lessons-in-structure/SKILL.md",
-      "source_sha256": "77044c83a9ac6df78fc643887ea5f1f11f082adaf14b717c060cdaed03cce863",
+      "source_sha256": "228963799189f481827d6f28065f278bc2008ffa37030b1234cbd5814d36b9e9",
       "status": "adapted"
     },
     {
@@ -792,10 +870,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "2e8dab56edceb827bcaa60cfb216aef1930ccefab403c2dcfe39bfe36099b203",
-      "package_sha256": "8d6dc36215ca5a8671fd725b40d29da5ebd06b59d374bb698c2b0a819710cbf7",
+      "original_body_sha256": "f12af47a7e4f336bc5074540c474ebd1ada8a68649ad06d6ef6961cac8ccbaff",
+      "package_sha256": "5f2529f01b8438be2a3d461cad4350b279948dd8251e976acd39d31ed8382f36",
       "path": "skills/principle-exhaust-the-design-space/SKILL.md",
-      "source_sha256": "8583310d7297b7823d75494faa57b003564d436807febecdecbd8321abe5cf6e",
+      "source_sha256": "2de83d99f93f60ec6313455b0bc9aa9f0bfb93dd59f414f403691322db00d4db",
       "status": "adapted"
     },
     {
@@ -816,10 +894,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "3517cbde50007b30dd291e922663459bcb4b6b713bdc05187367c0d561974782",
-      "package_sha256": "c95ac46abe923df8f12fa6328812845a1179253f3403a10ed2eea7139afac263",
+      "original_body_sha256": "ccace06a5d92ceda09bb073d1a1d6dba6be6b1e8328a7043059be7ac01be41e9",
+      "package_sha256": "49e05e4e84a3ed8d316b6e5fe2b1295328e300da3b01da33b9b06cdb25ac8503",
       "path": "skills/principle-explain-the-number/SKILL.md",
-      "source_sha256": "5aac99e7ce0bb1b37e2579acf4fe88c32a1456d9d46afd4a57cfe1df9092e89c",
+      "source_sha256": "cd5a25f9e7cf023627ccb470dc5faa97542f29b4319496a32b839a8e1e988047",
       "status": "adapted"
     },
     {
@@ -828,10 +906,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "e3e94c688b6cc14dff9be80fa2d0c9780d386722b67368613f5e4b812118a413",
-      "package_sha256": "0aa1fefb02504b425cd3512eed543e6eaaad9579bd7eb8e4b016d86061d5f73a",
+      "original_body_sha256": "7b1850ee3c514f67f9515ab79d9941c753720121a3f92a005103ac8952ac489e",
+      "package_sha256": "bf4db968664b84d1885c85f4c0af3663abc96589854064185d05c4cf9e78e19e",
       "path": "skills/principle-fix-root-causes/SKILL.md",
-      "source_sha256": "ba4cd38da1dcc8fe5432feb64457cba95594736a9b21b2ebf8f8c52aee068707",
+      "source_sha256": "8df3c8c3fe57eb0055a5c8efab8ab144557fdf301da70b1cdc77a3a3ef3f3052",
       "status": "adapted"
     },
     {
@@ -852,10 +930,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "22e46dedc5402af4fb7033696b7b538fcc03dcca608aadeecf3cac4595d0291d",
-      "package_sha256": "28010d9d9ecdc137d2df53f5a4f0aed8a6953298a89a24dbf7eadda9ae3dedcd",
+      "original_body_sha256": "1de9dd5af2fe61bbc40c477c02440c9498cc35c1c9fc2c8f88c2abff80583d38",
+      "package_sha256": "03f41be3a1d3a0fc2900574183394a2f20345d521a1e811f9f60d8d07e1ccead",
       "path": "skills/principle-guard-the-context-window/SKILL.md",
-      "source_sha256": "d2cef147862576e3d709b7afc149d85196245e8338b9c7eef337c95fba412b3e",
+      "source_sha256": "af0b9dd70b43628ce4a59a4d332e9d9ad055084e460f430e7a757495c627e81a",
       "status": "adapted"
     },
     {
@@ -864,10 +942,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "8ae8464c19d2c17f0b4e61d84e7325457207bcfd3dd805342ba1b4a7ab866bb8",
-      "package_sha256": "3615343bb793bcc63266de9500dfd599115b8cde98a5d8f69f02f2e6b6617da8",
+      "original_body_sha256": "574158dc80b610a8a7b06ac43eed29cc00d2290a0853b9551029e1eb1ddb2328",
+      "package_sha256": "c1ebb962a6a12936d5fc77850b9ff86b2fcfbc5b508368f8ace4674528682ff3",
       "path": "skills/principle-laziness-protocol/SKILL.md",
-      "source_sha256": "9006579e9e3f33955d17569733db688ae65f22577dc3b21803d219a5a8445aff",
+      "source_sha256": "1be6e7a435f26a75a76eb848b9c3d611b9977d0f5822361753244da25ca3ca45",
       "status": "adapted"
     },
     {
@@ -876,10 +954,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "17b8ccf090e4cd268510221c5dd8c801b69cbbe1491d847b77ddac35c7d09992",
-      "package_sha256": "c1a6ac1082ccff2c325bc62128f6054bdc16f99b78983f55e46663aaf56fca23",
+      "original_body_sha256": "4d987ee2ff0b5ad4bbfaf067fa5a5d071c99299db3842b19f2f184c76f68eb1e",
+      "package_sha256": "181ccb05de1a4a38a285fffd4da57b23de1fa7222c5e6f6c9a10d0c651aec214",
       "path": "skills/principle-make-operations-idempotent/SKILL.md",
-      "source_sha256": "540738217c3da7bf513b9886924ad6a2bc77e58be867f5bd2e1831c74bf2ce70",
+      "source_sha256": "7aa9327cf1f1aa057e95d47a0a78bd88a8f9d556b608866fee939d455a53a019",
       "status": "adapted"
     },
     {
@@ -888,10 +966,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "a7507b012e49cab6645c74fa9b573bd4c30d01f9fc06daec6aefe37529ab4928",
-      "package_sha256": "c0213b7979161013be2bca9e2fbe6a1bd5ec1200e2ee6602087b9290c8245597",
+      "original_body_sha256": "25c9e921a2b32212acb2dbf899cbf54b5552e1f41de5f8424af1dcf4d2feb1eb",
+      "package_sha256": "2438d4983966c06f3efc15d13fe62225468c2abfe2088483714fac3e6cba611e",
       "path": "skills/principle-migrate-callers-then-delete-legacy-apis/SKILL.md",
-      "source_sha256": "09978915a4a11990cf0a9a02d9c08cc59e0b7a04c5c24b83aa560fbe4146f75b",
+      "source_sha256": "580ad9bb1a0994ecb924321ba49efc38a2f85c64e22c76fb133f57a78272a2e6",
       "status": "adapted"
     },
     {
@@ -900,10 +978,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "6e78b2b8e1e858a959b19cb155982e32c2ddc7e31441e0780539e15475405481",
-      "package_sha256": "f84f17358c23edfd330029ac737f777eb75eec621e5cce4993290fa93d53fee3",
+      "original_body_sha256": "42be6f9e8b2d8f872d4e3762c73becefd9ccd1bd1ad36b4bf5aa439f20f6b8c4",
+      "package_sha256": "52850fe5d6ab710b334329ac903b0ffee33446ff788cd53f8ff577f1892cb440",
       "path": "skills/principle-minimize-reader-load/SKILL.md",
-      "source_sha256": "42551c5dc74cd578163c148da552db3ff67d29b78600ef216bfd311fb828fe69",
+      "source_sha256": "1ea2b7fef2391cae5844c4efdbd59031f775e8a52d06b7495d707229a200dcca",
       "status": "adapted"
     },
     {
@@ -912,10 +990,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "dd71750e4077a84bc4e081dcf72b960a8ab37efab99ea214dd5847ff39f09aa6",
-      "package_sha256": "21c2e58a323f5fb8c0e80ca1e7b7b7fc30dc50ac5d7f3acca04efeeb90f3ee3d",
+      "original_body_sha256": "43b4e8ad97cc0de0f070adeb2e333fa9a9d02783796b9bb9bc0d92361f18df4f",
+      "package_sha256": "0d06d15ed6024f182c419ee9ff8c5ae9e69b2f763a95f72c11679585cfb4444d",
       "path": "skills/principle-model-the-domain/SKILL.md",
-      "source_sha256": "bbadbb9a723fac3f76e782ae45665eb94058ec10993e4bae36d4dc6b0e4eac07",
+      "source_sha256": "52c0d85e0c3827c41c18299b642657d7b47eaf77b7b31609e42e0df42b84c75f",
       "status": "adapted"
     },
     {
@@ -924,10 +1002,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "6eb443ed6eb3960db80198cd4ce532d15767807676c2ca21ae5ab11bcf99a5f7",
-      "package_sha256": "6982a4e2e7dde25300c70fad27f1a07c4373a271bb4da0a424b9ea1a068979ba",
+      "original_body_sha256": "3dcf9fa0503dcc4d85c8bb415e56a9fc43cbb5fd59d00e65cd936f0707544faf",
+      "package_sha256": "eb4c2e69d6102309a4f85dfdbb5916c9b92a4921fe59bd87120d99f5e54d3f43",
       "path": "skills/principle-never-block-on-the-human/SKILL.md",
-      "source_sha256": "f2764bb9338cbfc788c903cf4b9cd0a5f4042d3a04dd6d59cbd525d9beaadd0a",
+      "source_sha256": "05030a7a083c337676f793881b4e93cd218e8f1dd676529f56e6ac1d3efb8d1f",
       "status": "adapted"
     },
     {
@@ -960,10 +1038,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "b46fac03692ad5c45588bc6378c188864455151821c435ed1f64bc66d399afec",
-      "package_sha256": "92a793bb898ad3b1143ed02ce971b6fc38ece68ea331b720a2b97ac85c45d9e6",
+      "original_body_sha256": "9ee4d34df63633e9780a54808243b8aa230129dc825a7244cc9b2915b16b4a11",
+      "package_sha256": "aa9831f9e565577e493ae0e4b61361eeb92e4c356a1a1cfb9c746020cbbd6ed7",
       "path": "skills/principle-redesign-from-first-principles/SKILL.md",
-      "source_sha256": "a1c7fd0a96b40e12a74bceb0e6bb20a9666dd844dcabfb624acb27da23b929fe",
+      "source_sha256": "170e0a658783e43fee8ec5a8c2422a4abb8f69cef621dd1819a95910b8207034",
       "status": "adapted"
     },
     {
@@ -996,10 +1074,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "78701d2a0e7bcec6629c6678668daf0687c7f38e61baaf3dbf41953b0ab88e8a",
-      "package_sha256": "7b8a3ca793df388be85df3f617dfc378219f9c7db61da648a9e5132a1ce61b83",
+      "original_body_sha256": "53aafbbbe87171b8d712d9cf52b5a8af1c7ac9bfb49f6a18e912195de447aa27",
+      "package_sha256": "61dcde98387917ef0e9e606631b32dfdf8c7011356cb928b0e2ab076617afb9c",
       "path": "skills/principle-subtract-before-you-add/SKILL.md",
-      "source_sha256": "a983a50e732c1ed315eba7aaf47a61329e31c4794eb1ab9d25d9945265b31e03",
+      "source_sha256": "8c93bb9d1a7f38e2ef37655d93f0e790fa59903105af3d500cc8a663ebe45f3f",
       "status": "adapted"
     },
     {
@@ -1008,10 +1086,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "2dcdc88cde706ed1c3ad53e88b534468c4bea5daf1ccd96cc9c659a497c7a6e4",
-      "package_sha256": "47a122332fe979745662a78cacee08be66236bcf5f2207bd224d9f133270ddc5",
+      "original_body_sha256": "f5104476701735a3c44ea7d04a2ba96da6d6e1187e585187b08d4f579adb7c29",
+      "package_sha256": "5ada1cff8ad1d1a764f021e29f50fc7cbf7bf2e878dbc8d59ff84dfdc2c08e60",
       "path": "skills/principle-test-behavior-not-implementation/SKILL.md",
-      "source_sha256": "87e40efe4e486f7ea639d2ed1fc0abe6c93b8fd0e89a81218086909d2470a52e",
+      "source_sha256": "f7223698623b6a26fea49c751e466b38e6691b1f32ce841d3983e7ffbe2b74a6",
       "status": "adapted"
     },
     {
@@ -1020,10 +1098,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "ddfb8d9c750a78dd429a3eef5cf3289a0bddcdc028fcd2e1bf29ea93a12b1b3a",
-      "package_sha256": "8930f89113f073ec6568326432ebef7cac4c7f8686ed01ec774e9cfdaf27d713",
+      "original_body_sha256": "aafded8bcb55d0d97612d74a59793747aa6eaaa7546de0b5b76e231b6bbfb7d5",
+      "package_sha256": "9c89f5fa7b0fb041ef7a53825748ae56de48fa0fe007d9db4fa10eb881b6748c",
       "path": "skills/principle-type-system-discipline/SKILL.md",
-      "source_sha256": "c83da8031ffb4c86410030d3e261f659598fca2b7d8158fd9dc269d70a3a025e",
+      "source_sha256": "5cdaf79785e3c12b2592b9469ee8c272143eb86ab7a18d8382197cea5fd30106",
       "status": "adapted"
     },
     {
@@ -1032,10 +1110,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "58907338bec881addb2d599f4099a2ede0e1559248fc23a87283e869f12db60b",
-      "package_sha256": "dec7f2bd1f016b6e1f2299c3597f7be6c9dd36dd215e06329dcf1504406f96e4",
+      "original_body_sha256": "534bbf8a6a65ef147998a62fed517c9ce4c40adb30907676ecaf0a8cd60117fc",
+      "package_sha256": "1fde863836b54ebc81cd24dd388cae4f56ddeea733056bcc1da23a8c90e7d362",
       "path": "skills/recall/SKILL.md",
-      "source_sha256": "d265b0e5b6dc5b89c0407f3387d24462c988e1990a37d5359735137908128c5a",
+      "source_sha256": "b0ceb996259c3404532f61e4b010df4e3d80d7ddbed85b3c302895723eb62a89",
       "status": "adapted"
     },
     {
@@ -1044,34 +1122,34 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "a37f9d19e7bfbf3549c9dd4b5522a9aba2c44b5427c00fa8c0291c31ddf76dad",
-      "package_sha256": "38103f44310a0c1d571c9468d079f695d0ec9209d7b47d5a944e51741f8fefde",
+      "original_body_sha256": "371d6ad0874de6e39377c24d29b32182acc6566074a43e175667fa83050c82af",
+      "package_sha256": "f363404e3c9c959ccec3be048898e5cd3829c977f2f632349fd61f9fcb80610e",
       "path": "skills/reflect/SKILL.md",
-      "source_sha256": "36efa48cc4ec2ba6f8131651aae24c6321682b098ed47a1069a7509462bf4a84",
+      "source_sha256": "1f5a8c246cdee8251f8667d85bd5d97f6c2801f505843c26ddbd6c621632519b",
       "status": "adapted"
     },
     {
-      "package_sha256": "221dfc0abf7cbcd25e1da3cd87323f5d1050fc3bf652e096d093584e183c98fb",
+      "package_sha256": "f6030d88e20e906ef5e2d9ba44cb013ce610c49c2fe2ef74c377d32e0dc9e939",
       "path": "skills/reflect/references/divergent-reviewer.md",
-      "source_sha256": "221dfc0abf7cbcd25e1da3cd87323f5d1050fc3bf652e096d093584e183c98fb",
+      "source_sha256": "f6030d88e20e906ef5e2d9ba44cb013ce610c49c2fe2ef74c377d32e0dc9e939",
       "status": "retained"
     },
     {
-      "package_sha256": "a40ecb9b28bd2a3491e11a541157fe58efe158e0eda7b61a5006c14590aabe61",
+      "package_sha256": "38f917619fbf346062d643e0ad6b12fc952d58678dfcbbf42ffcf6d8b9c08307",
       "path": "skills/reflect/references/judgment-reviewer.md",
-      "source_sha256": "a40ecb9b28bd2a3491e11a541157fe58efe158e0eda7b61a5006c14590aabe61",
+      "source_sha256": "38f917619fbf346062d643e0ad6b12fc952d58678dfcbbf42ffcf6d8b9c08307",
       "status": "retained"
     },
     {
-      "package_sha256": "2f76c847eb45b182dc6fbcbf7d96c8ee7e2986ecfd9e0d640fec44e3cc5a617c",
+      "package_sha256": "6af816963de74d1a1aef4070273c1ff533d2072732e488e159ddc0b299fec3cd",
       "path": "skills/reflect/references/synthesizer.md",
-      "source_sha256": "2f76c847eb45b182dc6fbcbf7d96c8ee7e2986ecfd9e0d640fec44e3cc5a617c",
+      "source_sha256": "6af816963de74d1a1aef4070273c1ff533d2072732e488e159ddc0b299fec3cd",
       "status": "retained"
     },
     {
-      "package_sha256": "bc49ced90fa81eaba3083b88aeb430d900a6d8f14ff40c1d6b52263bacfc77b6",
+      "package_sha256": "f81b8697e7366fbbc18feba52c6e3253a101f751091364ebc4396a1d9b5753b4",
       "path": "skills/reflect/references/tooling-reviewer.md",
-      "source_sha256": "bc49ced90fa81eaba3083b88aeb430d900a6d8f14ff40c1d6b52263bacfc77b6",
+      "source_sha256": "f81b8697e7366fbbc18feba52c6e3253a101f751091364ebc4396a1d9b5753b4",
       "status": "retained"
     },
     {
@@ -1080,10 +1158,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "ca52935c93ed20b5687a37fea435773cdbfda9678178bddb89438ee424cb4d7c",
-      "package_sha256": "f2ccbf9300cdfe1dfa032aa764745e476a4c801bec36c21d5172eb5ef5bf8b18",
+      "original_body_sha256": "410f9b8a1a325fdd462d151cbf82d9b9cd2529bb6e5f70b58ff566a866b4eb4d",
+      "package_sha256": "c7a23e0b4ddcf7fa4e1ba959e4141e336159cf4438ef3f362faafc04f314b781",
       "path": "skills/setup-pstack/SKILL.md",
-      "source_sha256": "125dd0c8f588782cfb271efae8f97a0719e43e79f56b3495c095f460bcee6389",
+      "source_sha256": "d61b47256a18155a81c8e5ef95e3cc6569ce8c18317c35c4dd9c8015cf68cb59",
       "status": "adapted"
     },
     {
@@ -1092,10 +1170,22 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "15b40dbae06ebc031ab9ff882eb57c47a5b4c306bf79b06affa6f9567e2916fd",
-      "package_sha256": "5c2b0968fb937e347b78f55c4146c4ca2847bb21f2bb670a080e46fabbec635b",
+      "original_body_sha256": "c03707fda1b8946337a8159b51927ad4cda678cba0a3ab639db2353778ccf1be",
+      "package_sha256": "b0e97e42ac3e6f5b487c3c11451b02a531acd26c4a1f8d625a64fba664903463",
+      "path": "skills/sharpen/SKILL.md",
+      "source_sha256": "6bcd73916696eb9c5b79b6f960983760c34bcc28937c11142dd8d86b5107aa46",
+      "status": "adapted"
+    },
+    {
+      "changes": [
+        "native frontmatter",
+        "explicit-only leaf invocation",
+        "host adapter preamble"
+      ],
+      "original_body_sha256": "8abf4a791099da78723815d53b07369ae6d726fa381b646bc7d2b73efaf56726",
+      "package_sha256": "722d839ef495813168039b21af006bcc26c3b7a0b5d1caadc8141621f3d1367a",
       "path": "skills/show-me-your-work/SKILL.md",
-      "source_sha256": "bcff5f7f9fd23f92c12b251f9cd6b947e9485e1055cfacb6fdd9cae0789d7550",
+      "source_sha256": "920a8217cbb62f92a2222fb81fc9eab17ecd554a0277e444a95a927195139bd1",
       "status": "adapted"
     },
     {
@@ -1116,10 +1206,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "de741cce8b494ed4c0f054e7b425f6d938dbc154bb1d83a88e891410e0c4924a",
-      "package_sha256": "0037198298a3faaec18ad951d2718260d64905273f7e4fbe07ff7de8d8feeab6",
+      "original_body_sha256": "89b8ca6b5f22734ee611cc4e1b2eef54f8e65252f09ba13d6dba53236d31a657",
+      "package_sha256": "f8a50e3e0bec3866c4b107cbf755a250697af0caaa21492119aa6b91ed31d34b",
       "path": "skills/swarm/SKILL.md",
-      "source_sha256": "bdcee4168e22428036e93d7cdeec3f391dbc4132f927f6db2540328c22db0273",
+      "source_sha256": "031657cb81e490f9aed5c75d6ff2a4fda35ccafbaf72be604e59481cc4080cdc",
       "status": "adapted"
     },
     {
@@ -1152,10 +1242,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "0e678380b504691515ff993e5c1dd11333f39a09028d9ab5faf2d3014d0741c1",
-      "package_sha256": "2831b95fe47bdd8fd62f9210c2b8b5a0d0200eaa666f7ae8b4cf18e50011f20f",
+      "original_body_sha256": "fa78033951fd96ef88a481ca3545da2355a5bd390ff07032cdd1a96b3e5a0dae",
+      "package_sha256": "cf09addafc5183d07787ce8e3e7db4760052aefa2bc7f8e8f5751dc1877a1da5",
       "path": "skills/technical-writing/SKILL.md",
-      "source_sha256": "f5c512ffeec70bc4e0dee50f7bb4c26742e1be77967a6e8b15d1921e1c209ceb",
+      "source_sha256": "61fe9c424a798ebf36ad94941f87be049cb8827bdf86d21474a0dde37b513c43",
       "status": "adapted"
     },
     {
@@ -1182,10 +1272,10 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "a71c9bdf6ca3b61e1c748e45d44d0267e802c8cb94e84828bc037bf79a658c88",
-      "package_sha256": "71e9294374dd9f571f20212e579fed666c420aa6f72957e006745d86bee0fcf3",
+      "original_body_sha256": "4398ebd335a9da1ff7e557196f58142d72b4fa3b1377dea59fb735894030565e",
+      "package_sha256": "ecee7fd2b27f054039cfcecb1ee6a98513b466d8c14140f258c6d02a953db802",
       "path": "skills/unslop/SKILL.md",
-      "source_sha256": "195411d320b5b328f9f642baf59757ed19aaf0931c0838740e0aca273d538dc1",
+      "source_sha256": "ccab208e315ce05e2fab8eeee2f7879f1289b5c6844840b2d307adf31c79144f",
       "status": "adapted"
     },
     {
@@ -1194,22 +1284,22 @@
         "explicit-only leaf invocation",
         "host adapter preamble"
       ],
-      "original_body_sha256": "112d690251a1273848094b1a311cce867f5e0f9e9e794e8f55d38a6f14320f16",
-      "package_sha256": "4a3de6e7b27ab0945b0180e75905579e630340a472c95e651476275940e8c68a",
+      "original_body_sha256": "3f8735c8cc7f49bfe98bd891f4a712944870a056e8260392cac64332ac98ceae",
+      "package_sha256": "7ef6abf9bddb16378554d7a91e550d0170c179ca5324de9d241f289bd339484a",
       "path": "skills/why/SKILL.md",
-      "source_sha256": "2a852ec8680920109d2b56538b027c52867896a597250ac5d18a13e0b42e5b06",
+      "source_sha256": "144d42e7712723d763e607bc0a969e5f1cdf83ec7228519d87677cc534571bed",
       "status": "adapted"
     },
     {
-      "package_sha256": "fcc0f559c072832c869a5ada72434b4849320a637ae63c09e8ee14f7ad787059",
+      "package_sha256": "d54a2361b2d5973bc3fe2edf62f446d87935974d4b40d47f23b9529f956ca758",
       "path": "skills/why/references/epistemics.md",
-      "source_sha256": "fcc0f559c072832c869a5ada72434b4849320a637ae63c09e8ee14f7ad787059",
+      "source_sha256": "d54a2361b2d5973bc3fe2edf62f446d87935974d4b40d47f23b9529f956ca758",
       "status": "retained"
     },
     {
-      "package_sha256": "6892956a7ab0b5ee6c4babaf4f793703abe89b350ea7cb9463b4a56eea1c8266",
+      "package_sha256": "c44afba186f899094f3694e6c9d6de5d14ff7c4ce28b787a9f50fc789c9a7fc3",
       "path": "skills/why/references/investigator-prompt.md",
-      "source_sha256": "6892956a7ab0b5ee6c4babaf4f793703abe89b350ea7cb9463b4a56eea1c8266",
+      "source_sha256": "c44afba186f899094f3694e6c9d6de5d14ff7c4ce28b787a9f50fc789c9a7fc3",
       "status": "retained"
     },
     {
@@ -1219,9 +1309,9 @@
       "status": "retained"
     },
     {
-      "package_sha256": "8c14aa382f0de40829b2668d43e3f54814480bb93a486c9282ada4003f6b9dbd",
+      "package_sha256": "a4a3970e9db448054aed676f3f7feeee667b4b69f0bd57c8fd72b751be687cc7",
       "path": "skills/why/references/sources/code-archaeology.md",
-      "source_sha256": "8c14aa382f0de40829b2668d43e3f54814480bb93a486c9282ada4003f6b9dbd",
+      "source_sha256": "a4a3970e9db448054aed676f3f7feeee667b4b69f0bd57c8fd72b751be687cc7",
       "status": "retained"
     },
     {
@@ -1231,15 +1321,15 @@
       "status": "retained"
     },
     {
-      "package_sha256": "ebe9c07bac28e47757ee7f16fb93b0c01d427a08c501957d047f395a2f37b7e7",
+      "package_sha256": "b139faac5dc11b8f26c8255dce6033c1a6ac143b038d3dd103f2034c5dbec9cd",
       "path": "skills/why/references/sources/datadog.md",
-      "source_sha256": "ebe9c07bac28e47757ee7f16fb93b0c01d427a08c501957d047f395a2f37b7e7",
+      "source_sha256": "b139faac5dc11b8f26c8255dce6033c1a6ac143b038d3dd103f2034c5dbec9cd",
       "status": "retained"
     },
     {
-      "package_sha256": "a899470f05f86029630a13a2696491cc708ca7b56a6e822a69ff6e954d6ff8cf",
+      "package_sha256": "bf2661f1a81c37700884a45b77d6289be0c802b065febced31990e6564510839",
       "path": "skills/why/references/sources/incident-postmortem.md",
-      "source_sha256": "a899470f05f86029630a13a2696491cc708ca7b56a6e822a69ff6e954d6ff8cf",
+      "source_sha256": "bf2661f1a81c37700884a45b77d6289be0c802b065febced31990e6564510839",
       "status": "retained"
     },
     {
@@ -1255,26 +1345,26 @@
       "status": "retained"
     },
     {
-      "package_sha256": "6f292bc4fb1548e956f95e1900b9481abf5134254419f1cd9edec95428c82d73",
+      "package_sha256": "2d4f83048eac1df530b399e2aed75dd7c9c18577b7665420aaeb96d0ceb0b702",
       "path": "skills/why/references/sources/sentry.md",
-      "source_sha256": "6f292bc4fb1548e956f95e1900b9481abf5134254419f1cd9edec95428c82d73",
+      "source_sha256": "2d4f83048eac1df530b399e2aed75dd7c9c18577b7665420aaeb96d0ceb0b702",
       "status": "retained"
     },
     {
-      "package_sha256": "58fee61d024b3700b407e7acbed367944720ff05adfddb6954d36c88368f3ba7",
+      "package_sha256": "3bc6309f5c7b26ace3b919dbd7f7b048861dd2020f910fe24f656cc74b3b661c",
       "path": "skills/why/references/sources/slack.md",
-      "source_sha256": "58fee61d024b3700b407e7acbed367944720ff05adfddb6954d36c88368f3ba7",
+      "source_sha256": "3bc6309f5c7b26ace3b919dbd7f7b048861dd2020f910fe24f656cc74b3b661c",
       "status": "retained"
     },
     {
-      "package_sha256": "733a3e9cf897b1aca56aaddeae01a3832e4bfed024c2f602db2d1bf807d7a73b",
+      "package_sha256": "11c62671aa7b7a6e3d36929ffe2b59bf95e6ca664eee4d93e6ee527dd3390ddb",
       "path": "skills/why/references/synthesizer-prompt.md",
-      "source_sha256": "733a3e9cf897b1aca56aaddeae01a3832e4bfed024c2f602db2d1bf807d7a73b",
+      "source_sha256": "11c62671aa7b7a6e3d36929ffe2b59bf95e6ca664eee4d93e6ee527dd3390ddb",
       "status": "retained"
     }
   ],
-  "framework_source_digest": "d89027b6885aa0feb438e4e5b6d47d0672d0111aff01e22bdbf7742fdd7107f8",
-  "original_files": 160,
+  "framework_source_digest": "18665e890cebf55e1123858bf9b058db893ec037b57b0047b516da4e1e39c0bb",
+  "original_files": 170,
   "schema_version": 1,
-  "upstream_commit": "23e4138daa01c42d4969f7a5465f82704e64f798"
+  "upstream_commit": "101b274dd991f694e1f7024be2157e5f3adf07de"
 }

@@ -44,7 +44,7 @@ class WorkflowMetricsTests(unittest.TestCase):
         self.event('native-child', 'started')
         self.event('native-child', 'complete')
         summary = self.summary()
-        self.assertEqual(summary['counts'], dict(spawned=1, active=0, requested=0, complete=1, failed=0, cancelled=0))
+        self.assertEqual(summary['counts'], dict(spawned=1, active=0, requested=0, complete=1, failed=0, cancelled=0, limited=0))
         self.assertIsNone(summary['tokens']['inputTotal'])
         self.assertIsNone(summary['tokens']['output'])
         self.assertIsNone(summary['workers']['native-child']['contextOccupancy'])
@@ -120,7 +120,7 @@ class WorkflowMetricsTests(unittest.TestCase):
         self.event('cancelled', 'started')
         self.event('cancelled', 'cancelled')
         summary = self.summary()
-        self.assertEqual(summary['counts'], dict(spawned=4, active=1, requested=0, complete=1, failed=1, cancelled=1))
+        self.assertEqual(summary['counts'], dict(spawned=4, active=1, requested=0, complete=1, failed=1, cancelled=1, limited=0))
         self.assertEqual(summary['attempts'], 5)
         self.assertEqual(summary['failedAttempts'], 2)
 
@@ -237,7 +237,7 @@ class WorkflowMetricsTests(unittest.TestCase):
         second = m.import_receipt(self.workflow, receipt)
         self.assertEqual(first, second)
         summary = m.summarize(self.workflow)
-        self.assertEqual(summary['counts'], dict(spawned=1, active=0, requested=0, complete=1, failed=0, cancelled=0))
+        self.assertEqual(summary['counts'], dict(spawned=1, active=0, requested=0, complete=1, failed=0, cancelled=0, limited=0))
         self.assertEqual(summary['workerElapsedSeconds'], 12.5)
         self.assertEqual(summary['tokens']['input'], 111)
         self.assertEqual(summary['tokens']['output'], 22)
@@ -257,13 +257,21 @@ class WorkflowMetricsTests(unittest.TestCase):
     def test_runner_killed_receipt_counts_cancelled(self):
         m.import_receipt(self.workflow, {'task_id': 'killed-task', 'state': 'killed', 'duration_s': 3.0})
         summary = m.summarize(self.workflow)
-        self.assertEqual(summary['counts'], dict(spawned=1, active=0, requested=0, complete=0, failed=0, cancelled=1))
+        self.assertEqual(summary['counts'], dict(spawned=1, active=0, requested=0, complete=0, failed=0, cancelled=1, limited=0))
 
     def test_runner_stalled_receipt_counts_failed(self):
         m.import_receipt(self.workflow, {'task_id': 'stalled-task', 'state': 'stalled', 'duration_s': 9.0})
         summary = m.summarize(self.workflow)
-        self.assertEqual(summary['counts'], dict(spawned=1, active=0, requested=0, complete=0, failed=1, cancelled=0))
+        self.assertEqual(summary['counts'], dict(spawned=1, active=0, requested=0, complete=0, failed=1, cancelled=0, limited=0))
         self.assertEqual(summary['workers']['stalled-task']['metadata']['failureCode'], 'stalled')
+
+    def test_runner_limited_receipt_counts_limited_not_failed(self):
+        m.import_receipt(self.workflow, {'task_id': 'limited-task', 'state': 'limited', 'duration_s': 4.0, 'reset_at': '2026-10-18T03:10:00Z'})
+        summary = m.summarize(self.workflow)
+        self.assertEqual(summary['counts'], dict(spawned=1, active=0, requested=0, complete=0, failed=0, cancelled=0, limited=1))
+        self.assertEqual(summary['workers']['limited-task']['state'], 'limited')
+        self.assertEqual(summary['workers']['limited-task']['metadata']['failureCode'], 'limited')
+        self.assertIn('limited 1', m.format_summary(summary))
 
 
 if __name__ == '__main__':

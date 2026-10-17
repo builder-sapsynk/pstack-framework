@@ -12,7 +12,7 @@ from build import VERSION
 from install import (CLAUDE_PLUGIN, claude_marketplace, claude_package, codex_marketplace, install, install_claude,
                      managed_block, validate_managed_block)
 
-UPSTREAM = '23e4138daa01c42d4969f7a5465f82704e64f798'
+UPSTREAM = '101b274dd991f694e1f7024be2157e5f3adf07de'
 SOURCE = 'https://github.com/builder-sapsynk/pstack-framework.git'
 HOSTS = ('codex', 'claude-code')
 

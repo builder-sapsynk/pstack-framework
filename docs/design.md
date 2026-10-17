@@ -1,10 +1,10 @@
 # Design and execution contract
 
-The user requested a complete Sapsynk distribution of pstack for Codex cloud, with external Claude Code and Grok Build agents and future coordinator-host portability. The original source is pinned at Cursor commit `23e4138daa01c42d4969f7a5465f82704e64f798`, pstack 0.15.6.
+The user requested a complete Sapsynk distribution of pstack for Codex cloud, with external Claude Code and Grok Build agents and future coordinator-host portability. The original source is pinned at Cursor commit `101b274dd991f694e1f7024be2157e5f3adf07de`, pstack 0.15.25.
 
 ## Done predicate
 
-All 160 original files remain byte-identical and are accounted for in the source lock. The installed distribution includes all 49 upstream skills, 23 playbooks, both personas, references, helpers, and dormant automation. Native packaging and local resources validate. External CLI launches preserve the requested provider/model/effort, produce durable per-job receipts, never turn failed calls into votes, and support cancellation. Installation/bootstrap is idempotent and preserves a project's exact release and commit identity. GitHub and private cloud publication are verified independently. Live provider and scheduler claims require real authenticated execution; missing access remains an explicit blocker.
+All 170 original files remain byte-identical and are accounted for in the source lock. The installed distribution includes all 54 upstream skills, 23 playbooks, both personas, references, helpers, and dormant automation. Native packaging and local resources validate. External CLI launches preserve the requested provider/model/effort, produce durable per-job receipts, never turn failed calls into votes, and support cancellation. Installation/bootstrap is idempotent and preserves a project's exact release and commit identity. GitHub and private cloud publication are verified independently. Live provider and scheduler claims require real authenticated execution; missing access remains an explicit blocker.
 
 ## Alternatives and synthesis
 

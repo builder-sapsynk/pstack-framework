@@ -103,5 +103,14 @@ class RunnerReceiptTests(unittest.TestCase):
             run = p.summarize(bundle)['runs'][0]
             self.assertEqual((run['terminalStatus'], run['available']), ('cancelled', False))
 
+    def test_limited_runner_receipt_is_its_own_status_and_never_available(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = self.bundle(Path(directory), 'claude', state='limited')
+            check = Path(bundle['runs'][0]['evidence']['verification']['path'])
+            data = json.loads(check.read_text()); data['capabilities'] = {}; check.write_text(json.dumps(data))
+            bundle['runs'][0]['evidence']['verification']['sha256'] = hashlib.sha256(check.read_bytes()).hexdigest()
+            run = p.summarize(bundle)['runs'][0]
+            self.assertEqual((run['terminalStatus'], run['available']), ('limited', False))
+
 
 if __name__=='__main__':unittest.main()

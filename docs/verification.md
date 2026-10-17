@@ -26,11 +26,11 @@ GitHub account repository creation still lacks the integration's Administration 
 
 Framework source commit: `d691f7030c921c021ca02a0d930c48fe33ce071d`.
 Semantic digest: `66e2fa5bd15d5bf72f18a667039214ffe36251f3960cb681745c7ece5763f92c`.
-Upstream source: Cursor plugins commit `23e4138daa01c42d4969f7a5465f82704e64f798`, pstack 0.15.6.
+Upstream source: Cursor plugins commit `101b274dd991f694e1f7024be2157e5f3adf07de`, pstack 0.15.25.
 
 - Framework tests: 40 passed (9 packaging, 8 persistence, 23 runtime).
 - Original upstream orch/watch-pr suite: 52 passed, 206 assertions; original strict TypeScript check passed. Dependencies and tests ran in a temporary copy, preserving pristine source.
-- Artifact validation: all 160 original files, 49 upstream skills and 23 playbooks accounted for; 54 skills including companions. No introduced unresolved links. One placeholder `url` link already exists upstream.
+- Artifact validation: all 170 original files, 54 upstream skills and 23 playbooks accounted for; 59 skills including companions. No introduced unresolved links. One placeholder `url` link already exists upstream.
 - Native Codex installation: enabled plugin installed at the actual CODEX_HOME cache. Cached framework identity verified. Project startup content-pin check passed.
 - Private personal cloud plugin created: `plugins_6ac0b2ee244881918f771e5b572f3d99`, release `pluginrel_6ac0b2f2682081918880b9b5dbab8bb5`. Readback confirmed manifest, framework digest and runtime source. Account publication is not proof of installation across chats.
 - Current project instructions, pin, startup script and requested commit identity saved in a local application commit. Remote framework bootstrap depends on publishing the source repository.

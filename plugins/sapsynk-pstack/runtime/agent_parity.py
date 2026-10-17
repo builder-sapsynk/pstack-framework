@@ -17,7 +17,7 @@ RUNNER_TOOLS = {'grok': NATIVE_TOOLS,
                 'claude': {'read': {'Read'}, 'edit': {'Edit', 'Write'}, 'verify': {'Bash'}},
                 'codex': {'read': {'command_execution'}, 'edit': {'file_change'}, 'verify': {'command_execution'}}}
 RUNNER_STATES = {'succeeded': 'complete', 'failed': 'failed', 'lost': 'failed', 'killed': 'cancelled',
-                 'timeout': 'timed-out', 'startup_timeout': 'timed-out', 'stalled': 'timed-out'}
+                 'timeout': 'timed-out', 'startup_timeout': 'timed-out', 'stalled': 'timed-out', 'limited': 'limited'}
 
 
 def fail(message):
@@ -222,7 +222,7 @@ def summarize(document, base=Path('.'), allow_unit_fixtures=False):
         for key in ('provider', 'transport', 'model', 'effort'):
             if receipt.get(key) != binding[key]:
                 fail('receipt binding mismatch: ' + key)
-        if receipt.get('status') not in ('complete', 'failed', 'cancelled', 'timed-out'):
+        if receipt.get('status') not in ('complete', 'failed', 'cancelled', 'timed-out', 'limited'):
             fail('receipt must record a terminal outcome')
         complete = receipt['status'] == 'complete'
         if complete and (receipt.get('authVerified') is not True or receipt.get('modelVerified') is not True):

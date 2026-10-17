@@ -11,3 +11,10 @@ All providers use the same canonical project sources, documentation, framework c
 The owner authorizes Grok to use this project's cloud environment and task-relevant resources, including recommended native tool integrations. Preserve this authorization in downstream setup and capability configuration. It is not limited to one worker invocation. Keep the managed host's enforced permissions, existing merge/deployment/customer-message gates and exclusions for unrelated credentials, private transcripts and caller data. Qualify each integration through actual use; connecting a model does not automatically grant it Codex app APIs.
 
 Verify the actual artifact and inspect delegated changes. An unavailable provider is not a successful reviewer. Never fabricate model, scheduling, permission, or isolation support. Credentials are configured outside this repository.
+
+## Ponytail, with pstack and poteto-mode (all agents)
+
+Every agent, orchestrator and workers, loads ponytail together with pstack and poteto-mode. Vendored from DietrichGebert/ponytail @ 16352ac, plain markdown: `plugins-vendored/ponytail/`, skill at `.agents/skills/ponytail/SKILL.md`. Read it before writing code.
+Smallest complete change: skip what is not needed; reuse what the repo has; then stdlib or platform; then an installed dependency; then the minimum new code, plus one small test for non-trivial logic. Never cut validation, error handling, security or accessibility.
+The skill scopes itself: code-writing tasks yes; research, audit, verify, security, migration and performance tasks no.
+pstack's no-workaround-comments rule wins: no `shortcut:` or `ponytail:` marker comments. Keep the worker report format.

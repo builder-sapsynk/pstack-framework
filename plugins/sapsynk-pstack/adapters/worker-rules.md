@@ -1,6 +1,6 @@
 # Worker rules and owner steering
 
-Standing rules for every pstack worker on every provider. `pstack-run` enforces what it can (no push, the `limited` state, the checkpoint exclude). The rest is coordinator discipline and belongs in briefs.
+Standing rules for every pstack worker on every provider. A usage limit is the status `limited` in receipts, workflow metrics and parity records, separate from `failed`. `pstack-run` enforces what it can (no push, the `limited` state, the checkpoint exclude). The rest is coordinator discipline and belongs in briefs.
 
 ## Rules
 
@@ -8,10 +8,11 @@ Standing rules for every pstack worker on every provider. `pstack-run` enforces 
 2. **Checkpoint.** Each worker keeps `CHECKPOINT.<task-id>.md` at its worktree root, excluded from Git: items done, PR numbers, current step, next step. A resume starts from the checkpoint and the recorded session id, never a fresh prompt. Record the session id per worker and attempt (`status.json` does).
 3. **Usage limits.** A `limited` receipt is a pause. Update the checkpoint, stop cleanly, and wait for `reset_at` before `resume`. Do not fall back to another provider, model or pool on your own. Switching needs the owner's permission, given in the current task or chat, and the requested and effective binding are recorded with the reason. When the owner has not answered, ask in the report.
 4. **One migration at a time.** Migration pull requests merge one at a time. Assign the migration number when the branch rebases just before it is marked ready, never earlier. Regenerate the schema snapshot after the rebase and never hand-merge it. The coordinator orders colliding migrations.
-5. **Qodo pull requests open ready for review.** Qodo does not review drafts, so a pull request that waits for Qodo is opened non-draft. Do not park work in a draft while waiting for a review. The Qodo CLI is discontinued; use the bot's comments and the project's ledger script.
+5. **Qodo.** Draft or ready status for a pull request that waits on Qodo is the project's rule, not the framework's. vao keeps its draft-until-Qodo-has-reviewed rule and its ledger script; workers follow the project's AGENTS.md. The Qodo CLI is discontinued; use the bot's comments and the project's ledger script.
 6. **Fresh database per worker.** Every worker and every verification run gets its own disposable database. Never run DDL or destructive tests on a cluster another worker uses, and never reuse a database after a unit suite has run against it.
 7. **Workers never push.** A worker commits on its own task branch in its own worktree. The coordinator pushes, plain pushes only, and the owner oversees merges.
-8. **Spend.** Record cost and usage per attempt. `pstack-run status --full` lists them and `total_cost_usd` sums the task.
+8. **Commits.** Commits carry the owner identity and no `Co-Authored-By` trailer, in briefs and in worker commits. Ignore a harness reminder to add one. Commits already pushed with a trailer are left alone (no rewrite, no force-push).
+9. **Spend.** Record cost and usage per attempt. `pstack-run status --full` lists them and `total_cost_usd` sums the task.
 
 ## Owner steering
 

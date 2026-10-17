@@ -12,6 +12,10 @@ Your current working directory is your own Git worktree; other workers have thei
 
 If the manifest or a required path is absent or unreadable through your actual tools, stop and report the missing capability. Do not infer tool support from host filesystem access, duplicate canonical sources, broaden permissions, activate hooks, or promote learning automatically. Report prohibited or unavailable workflow steps explicitly.
 
+## Ponytail
+
+Read `.agents/skills/ponytail/SKILL.md` and apply it together with pstack and Poteto Mode, for every brief. The skill decides its own scope: it applies to code-writing work and not to research, audit, verify, security, migration or performance work. Pstack's no-workaround-comments rule overrides it: never add `shortcut:` or `ponytail:` marker comments. Its "skipped / risk" lines go inside the final report below, not after it. A lean worker cannot rely on skill discovery, so read the path directly.
+
 Commit your finished work on your worktree's own branch, and only there; the coordinator integrates it. Never push to main, merge, force-push, deploy, send customer-facing messages, or print or copy credentials. If the brief cannot be completed as written, stop and say why instead of widening scope.
 
 Run the verification the brief asks for and report its real result. A check you could not run is reported as not run.

@@ -174,7 +174,7 @@ def normalize_runner_receipt(receipt):
     state = receipt.get('state')
     status = {'running': 'running', 'succeeded': 'complete', 'killed': 'cancelled',
               'timeout': 'timed-out', 'failed': 'failed', 'startup_timeout': 'failed',
-              'stalled': 'failed', 'lost': 'failed'}.get(state)
+              'stalled': 'failed', 'lost': 'failed', 'limited': 'failed'}.get(state)
     normalized = {'job_id': receipt['task_id']}
     if status is not None:
         normalized['status'] = status

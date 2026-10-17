@@ -7,7 +7,7 @@ import re
 import sys
 import zipfile
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build import ROOT, NAME, VERSION, RUNNER_SHIM, adapted_skill, files, sha, verify_source, source_digest
+from build import ROOT, NAME, VERSION, RUNNER_SHIM, REPLACED_MANIFEST, adapted_skill, files, sha, verify_source, source_digest
 
 LINK = re.compile(r'!?\[[^\]]*\]\(([^\s)]+)(?:\s+[^)]*)?\)')
 
@@ -51,6 +51,10 @@ def validate(root=ROOT):
             expected_policy = override.read_bytes() if override.is_file() else b'policy:\n  allow_implicit_invocation: false\n'
             if policy.read_bytes() != expected_policy:
                 raise ValueError('Invalid native invocation policy: ' + path)
+        if path == REPLACED_MANIFEST:
+            if rows[path].get('status') != 'replaced' or rows[path]['source_sha256'] != lock['files'][path]:
+                raise ValueError('Replaced manifest provenance mismatch: ' + path)
+            continue
         actual = (package / path).read_bytes()
         if actual != expected or rows[path]['package_sha256'] != sha(actual) or rows[path]['source_sha256'] != lock['files'][path]:
             raise ValueError('Package parity mismatch: ' + path)

@@ -1,6 +1,6 @@
 # Sapsynk pstack
 
-Portable pstack engineering workflows for Codex and Claude Code hosts, with Codex, Grok Build and Claude Code CLI workers. The upstream Cursor pstack 0.15.6 source is retained unchanged at commit `23e4138daa01c42d4969f7a5465f82704e64f798`: 160 files, 49 skills and 23 playbooks. Additional skills supply portable setup, provider execution, verification and control companions.
+Portable pstack engineering workflows for Codex and Claude Code hosts, with Codex, Grok Build and Claude Code CLI workers. The upstream Cursor pstack 0.15.25 source is retained unchanged at commit `101b274dd991f694e1f7024be2157e5f3adf07de`: 170 files, 54 skills and 23 playbooks. Additional skills supply portable setup, provider execution, verification and control companions.
 
 ## Build and verify
 

@@ -31,6 +31,11 @@ import json
 print(json.dumps({'type': 'thread.started', 'thread_id': 'thread-2'}))
 print('not json')
 '''
+CODEX_LIMITED = '''#!/usr/bin/env python3
+import json
+print(json.dumps({'type': 'thread.started', 'thread_id': 'thread-6'}), flush=True)
+print(json.dumps({'type': 'error', 'message': "You've hit your usage limit. resets 3:10am (UTC)"}))
+'''
 SILENT = '#!/bin/sh\nexec sleep 60\n'
 CLOSES_OUTPUT_THEN_HANGS = '#!/bin/sh\necho \'{"type":"thread.started","thread_id":"thread-4"}\'\nexec >&- 2>&-\nexec sleep 60\n'
 PAID_THEN_HANGS = ('#!/bin/sh\necho \'{"type":"thread.started","thread_id":"thread-5"}\'\n'
@@ -234,6 +239,16 @@ class RunnerTests(unittest.TestCase):
     def git(self, cwd, *arguments, env=None):
         return subprocess.run(['git', '-C', str(cwd), *arguments], capture_output=True, text=True, env=env)
 
+    def test_usage_limit_is_a_limited_state_with_reset_and_the_session_stays_resumable(self):
+        self.assertEqual(self.invoke(CODEX_LIMITED, 'run', 'codex', 'limit', str(self.brief)).returncode, 75)
+        status = self.status('limit')
+        self.assertEqual((status['state'], status['session_id']), ('limited', 'thread-6'))
+        self.assertRegex(status['reset_at'], r'T03:10:00Z$')
+        self.assertIn('hit your usage limit', status['error'])
+        self.assertEqual(status['attempts'][-1]['reset_at'], status['reset_at'])
+        self.assertEqual(self.invoke(CODEX_OK, 'resume', 'limit', str(self.brief)).returncode, 0)
+        self.assertEqual(self.status('limit')['state'], 'succeeded')
+
     def test_hooks_confine_commits_to_the_task_branch_and_refuse_main_and_force_pushes(self):
         remote = self.root / 'remote.git'
         self.git(self.root, 'init', '-q', '--bare', str(remote))
@@ -252,12 +267,21 @@ class RunnerTests(unittest.TestCase):
         self.git(self.project, 'add', 'b.txt', env=env)
         refused = self.git(self.project, 'commit', '-qm', 'elsewhere', env=env)
         self.assertIn('commit only on pstack/guard', refused.stderr)
-        self.assertEqual(self.git(worktree, 'push', '-q', 'origin', 'pstack/guard', env=env).returncode, 0)
-        self.assertIn('refused push to refs/heads/main', self.git(worktree, 'push', 'origin', 'pstack/guard:main', env=env).stderr)
-        self.git(worktree, 'commit', '-q', '--amend', '-m', 'rewritten', env=env)
-        self.assertIn('refused force-push', self.git(worktree, 'push', '--force', 'origin', 'pstack/guard', env=env).stderr)
-        self.assertIn('refused deletion', self.git(worktree, 'push', 'origin', ':pstack/guard', env=env).stderr)
-
+        scratch = self.project / '.pstack/runs/guard/gh-config'
+        env = pstack_run.environment('codex', self.project / '.pstack/runs/guard/hooks', status['branch'], ['origin'], scratch)
+        for refspec in ('pstack/guard', 'pstack/guard:main', ':pstack/guard'):
+            refused = self.git(worktree, 'push', 'origin', refspec, env=env)
+            self.assertNotEqual(refused.returncode, 0)
+            self.assertIn('pstack-workers-never-push', refused.stderr)
+            hook_only = pstack_run.environment('codex', self.project / '.pstack/runs/guard/hooks', status['branch'])
+            if not refspec.startswith(':'):
+                self.assertIn('refused push', self.git(worktree, 'push', 'origin', refspec, env=hook_only).stderr)
+        self.assertEqual(self.git(remote, 'rev-parse', '--verify', '--quiet', 'refs/heads/pstack/guard').returncode, 1)
+        hookless = {**env, 'GIT_CONFIG_KEY_0': 'core.hooksPath', 'GIT_CONFIG_VALUE_0': '/nonexistent'}
+        blocked = self.git(worktree, 'push', '--no-verify', 'origin', 'pstack/guard', env=hookless)
+        self.assertNotEqual(blocked.returncode, 0)
+        self.assertEqual(self.git(remote, 'rev-parse', '--verify', '--quiet', 'refs/heads/pstack/guard').returncode, 1)
+        self.assertIn('CHECKPOINT.guard.md', (self.project / '.git/info/exclude').read_text())
 
 class ParserTests(unittest.TestCase):
     def test_grok_final_segment_cost_and_cancelled_turn(self):
@@ -299,12 +323,28 @@ class ParserTests(unittest.TestCase):
         self.assertNotIn('--dangerously-skip-permissions', argv)
 
     def test_environment_keeps_host_credentials_and_withholds_other_vendors(self):
-        os.environ.update(GH_TOKEN='g', XAI_API_KEY='x', OPENAI_API_KEY='o')
-        self.addCleanup(lambda: [os.environ.pop(key) for key in ('GH_TOKEN', 'XAI_API_KEY', 'OPENAI_API_KEY')])
-        env = pstack_run.environment('codex', Path('/h'), 'pstack/t')
-        self.assertEqual((env.get('GH_TOKEN'), env.get('OPENAI_API_KEY'), env.get('XAI_API_KEY')), ('g', 'o', None))
-        count = int(env['GIT_CONFIG_COUNT']) - 1
-        self.assertEqual((env[f'GIT_CONFIG_KEY_{count}'], env[f'GIT_CONFIG_VALUE_{count}']), ('core.hooksPath', '/h'))
+        os.environ.update(GH_TOKEN='g', GITHUB_TOKEN='g', SSH_AUTH_SOCK='/s', XAI_API_KEY='x', OPENAI_API_KEY='o')
+        self.addCleanup(lambda: [os.environ.pop(key) for key in ('GH_TOKEN', 'GITHUB_TOKEN', 'SSH_AUTH_SOCK', 'XAI_API_KEY', 'OPENAI_API_KEY')])
+        env = pstack_run.environment('codex', Path('/h'), 'pstack/t', ['origin'], Path('/gh'))
+        self.assertEqual((env.get('OPENAI_API_KEY'), env.get('XAI_API_KEY')), ('o', None))
+        self.assertFalse({'GH_TOKEN', 'GITHUB_TOKEN', 'SSH_AUTH_SOCK'} & set(env))
+        self.assertEqual(env['GH_CONFIG_DIR'], '/gh')
+        config = {env[f'GIT_CONFIG_KEY_{i}']: env[f'GIT_CONFIG_VALUE_{i}'] for i in range(int(env['GIT_CONFIG_COUNT']))}
+        self.assertEqual((config['core.hooksPath'], config['credential.helper'], config['remote.origin.pushurl']),
+                         ('/h', '', pstack_run.NO_PUSH))
+
+    def test_usage_limit_messages_set_the_limit_and_reset_time(self):
+        parser = pstack_run.Parser('claude')
+        parser.feed({'type': 'result', 'subtype': 'success', 'is_error': True, 'api_error_status': 429,
+                     'result': "You've hit your session limit · resets 12:30pm (UTC)"})
+        self.assertEqual((parser.limited, parser.terminal), (True, False))
+        self.assertRegex(parser.reset_at, r'T12:30:00Z$')
+        parser = pstack_run.Parser('claude')
+        parser.feed({'type': 'result', 'subtype': 'success', 'is_error': False, 'result': 'discussing a usage limit'})
+        self.assertEqual((parser.limited, parser.terminal), (False, True))
+        after = pstack_run.parse_reset('resets 3:10am (UTC)', __import__('datetime').datetime(2026, 10, 17, 3, 10, tzinfo=__import__('datetime').timezone.utc))
+        self.assertEqual(after, '2026-10-18T03:10:00Z')
+        self.assertIsNone(pstack_run.parse_reset('no reset here'))
 
 
 if __name__ == '__main__':

@@ -17,7 +17,7 @@ RUNNER_TOOLS = {'grok': NATIVE_TOOLS,
                 'claude': {'read': {'Read'}, 'edit': {'Edit', 'Write'}, 'verify': {'Bash'}},
                 'codex': {'read': {'command_execution'}, 'edit': {'file_change'}, 'verify': {'command_execution'}}}
 RUNNER_STATES = {'succeeded': 'complete', 'failed': 'failed', 'lost': 'failed', 'killed': 'cancelled',
-                 'timeout': 'timed-out', 'startup_timeout': 'timed-out', 'stalled': 'timed-out'}
+                 'timeout': 'timed-out', 'startup_timeout': 'timed-out', 'stalled': 'timed-out', 'limited': 'failed'}
 
 
 def fail(message):

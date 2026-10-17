@@ -22,8 +22,8 @@ class PackageTests(unittest.TestCase):
     def test_complete_and_reproducible(self):
         plugin, archive = build(self.root)
         report = validate(self.root)
-        self.assertEqual(report['original_files'], 160)
-        self.assertEqual(report['upstream_skills'], 49)
+        self.assertEqual(report['original_files'], 170)
+        self.assertEqual(report['upstream_skills'], 54)
         self.assertEqual(report['playbooks'], 23)
         digest = sha(archive.read_bytes())
         build(self.root)

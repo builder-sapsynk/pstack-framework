@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Local-host CLI worker runner: one task, one worktree, one run directory, one receipt."""
 import argparse
+import datetime
 import fcntl
 import json
 import os
@@ -14,6 +15,7 @@ import sys
 import threading
 import time
 import uuid
+import zoneinfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import dispatch_policy
@@ -25,12 +27,18 @@ MODES = ('write', 'read')
 TASK = re.compile(r'^[a-z0-9][a-z0-9._-]{0,63}$')
 KEYS = {'claude': {'ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN'}, 'grok': {'XAI_API_KEY', 'GROK_API_KEY'},
         'codex': {'OPENAI_API_KEY', 'CODEX_API_KEY', 'CODEX_ACCESS_TOKEN'}}
-TERMINAL = ('succeeded', 'failed', 'killed', 'timeout', 'startup_timeout', 'stalled', 'lost')
-EXIT = {'succeeded': 0, 'timeout': 124, 'startup_timeout': 124, 'stalled': 124, 'killed': 130}
+TERMINAL = ('succeeded', 'failed', 'killed', 'timeout', 'startup_timeout', 'stalled', 'lost', 'limited')
+EXIT = {'succeeded': 0, 'timeout': 124, 'startup_timeout': 124, 'stalled': 124, 'killed': 130, 'limited': 75}
+# A usage limit is not a failure: the worker waits for reset_at or the owner picks another lane.
+LIMIT = re.compile(r"hit your [a-z ]*limit|usage limit|session limit|weekly limit|quota (?:exceeded|exhausted)", re.I)
+RESET = re.compile(r'resets?\s+(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*([ap]m)\s*(?:\(([^)]+)\))?', re.I)
+NO_PUSH = 'pstack-workers-never-push://refused'
+TOKENS = ('GH_TOKEN', 'GITHUB_TOKEN', 'GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN', 'GITLAB_TOKEN', 'GIT_ASKPASS',
+          'SSH_AUTH_SOCK', 'SSH_ASKPASS')
 DEFAULTS = {'startup_timeout': 120.0, 'idle_timeout': 900.0, 'timeout': 3600.0}
 SUMMARY_LIMIT = 2000
 ATTEMPT_KEYS = ('attempt', 'state', 'exit_code', 'session_id', 'model', 'effort', 'cost_usd', 'usage', 'duration_s',
-                'started_at', 'ended_at', 'error')
+                'started_at', 'ended_at', 'error', 'reset_at')
 HEADER = ('You are pstack worker `{task}` running as an external {provider} CLI agent in {mode} mode.\n'
           'Your working directory is {where}.\n'
           'You run unattended with full autonomy on a dedicated machine: no sandbox, no approval prompts, '
@@ -38,24 +46,18 @@ HEADER = ('You are pstack worker `{task}` running as an external {provider} CLI 
           'You are a worker, not the coordinator. Do the brief directly. Router dispatch, role resolution, '
           'and spawning are coordinator-only.\n'
           '{writes}'
-          'Hard limits: never push to main, merge, force-push, deploy, send customer-facing messages, '
-          'or print or copy credentials. The coordinator integrates your branch.\n'
+          'Hard limits: never push (any branch, any remote), merge, force-push, deploy, send customer-facing messages, '
+          'or print or copy credentials. Push credentials are withheld; the coordinator pushes and integrates your branch.\n'
+          'Keep `CHECKPOINT.{task}.md` at the worktree root (git-excluded) current: done, current step, next step. '
+          'On a usage limit stop cleanly after updating it; do not switch provider or model. You will be resumed after the reset.\n'
           'End with a final message of at most 10 lines: outcome, files touched, commits, '
           'verification you ran with its result, and open issues.\n\n')
 PRE_COMMIT = ('#!/bin/sh\n# pstack worker guard: commits stay on the task branch.\n'
               'branch=$(git symbolic-ref --quiet --short HEAD || echo detached)\n'
               'if [ "$branch" != "$PSTACK_TASK_BRANCH" ]; then\n'
               '  echo "pstack: commit only on $PSTACK_TASK_BRANCH, not $branch" >&2\n  exit 1\nfi\n')
-PRE_PUSH = ('#!/bin/sh\n# pstack worker guard: no push to main, no deletion, no force-push.\n'
-            'input=$(cat)\n'
-            'deny() { echo "pstack: refused $1" >&2; exit 1; }\n'
-            'while read -r local_ref local_sha remote_ref remote_sha; do\n'
-            '  [ -n "$remote_ref" ] || continue\n'
-            '  case "$remote_ref" in refs/heads/main|refs/heads/master) deny "push to $remote_ref";; esac\n'
-            '  case "$local_sha" in *[!0]*) ;; *) deny "deletion of $remote_ref";; esac\n'
-            '  case "$remote_sha" in *[!0]*) git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null '
-            '|| deny "force-push to $remote_ref";; esac\n'
-            'done <<EOF\n$input\nEOF\n')
+PRE_PUSH = ('#!/bin/sh\n# pstack worker guard: workers never push; the coordinator pushes.\n'
+            'echo "pstack: refused push: workers never push, the coordinator does" >&2\nexit 1\n')
 CHAIN = 'if [ -x "{hook}" ]; then printf \'%s\\n\' "${{input:-}}" | "{hook}" "$@" || exit $?; fi\n'
 
 
@@ -84,14 +86,26 @@ def start_identity(pid):
         return None
 
 
-def environment(provider, hooks=None, branch=None):
-    # The worker inherits the host environment; only other model vendors' keys are withheld.
+def environment(provider, hooks=None, branch=None, remotes=(), scratch=None):
+    """Worker environment: other vendors' keys and every push credential are withheld.
+
+    Workers never push. The pre-push hook refuses, each remote's pushurl points nowhere, and no
+    token, askpass helper, ssh agent, credential helper or gh login reaches the process.
+    """
     foreign = set().union(*KEYS.values()) - KEYS[provider]
-    env = {k: v for k, v in os.environ.items() if k not in foreign}
+    env = {k: v for k, v in os.environ.items() if k not in foreign and k not in TOKENS}
+    pairs = [('credential.helper', '')]
+    pairs += [(f'remote.{name}.pushurl', NO_PUSH) for name in remotes]
     if hooks:
-        count = int(env.get('GIT_CONFIG_COUNT') or 0)
-        env.update({'GIT_CONFIG_COUNT': str(count + 1), f'GIT_CONFIG_KEY_{count}': 'core.hooksPath',
-                    f'GIT_CONFIG_VALUE_{count}': str(hooks), 'PSTACK_TASK_BRANCH': branch or ''})
+        pairs.append(('core.hooksPath', str(hooks)))
+        env['PSTACK_TASK_BRANCH'] = branch or ''
+    count = int(env.get('GIT_CONFIG_COUNT') or 0)
+    for offset, (key, value) in enumerate(pairs):
+        env.update({f'GIT_CONFIG_KEY_{count + offset}': key, f'GIT_CONFIG_VALUE_{count + offset}': value})
+    env['GIT_CONFIG_COUNT'] = str(count + len(pairs))
+    env['GIT_TERMINAL_PROMPT'] = '0'
+    if scratch:
+        env['GH_CONFIG_DIR'] = str(scratch)
     if provider == 'grok':
         env['GROK_DISABLE_AUTOUPDATER'] = '1'
         for vendor in ('CURSOR', 'CLAUDE'):
@@ -218,12 +232,35 @@ def command(provider, mode, cwd, run, model, effort, session, resume, permission
     return argv, prompt
 
 
+def parse_reset(text, at=None):
+    """Next occurrence of a "resets 3:10am (UTC)" time as an ISO timestamp; None when absent or unreadable."""
+    match = RESET.search(text)
+    if not match:
+        return None
+    hour, minute, meridian, zone = int(match[1]) % 12, int(match[2] or 0), match[3].lower(), match[4] or 'UTC'
+    try:
+        tz = datetime.timezone.utc if zone.strip().upper() == 'UTC' else zoneinfo.ZoneInfo(zone.strip())
+    except (zoneinfo.ZoneInfoNotFoundError, ValueError):
+        return None
+    moment = (at or datetime.datetime.now(datetime.timezone.utc)).astimezone(tz)
+    reset = moment.replace(hour=hour + (12 if meridian == 'pm' else 0), minute=minute, second=0, microsecond=0)
+    if reset <= moment:
+        reset += datetime.timedelta(days=1)
+    return reset.astimezone(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
 class Parser:
     """Reduce a provider event stream to session, final message, usage, cost and terminal state."""
 
     def __init__(self, provider, session=None):
         self.provider, self.session, self.message, self.buffer = provider, session, '', ''
         self.usage, self.cost, self.terminal, self.error = None, None, False, None
+        self.limited, self.reset_at = False, None
+
+    def limit(self, text):
+        """Record a usage-limit message and, when it names one, the next reset time (UTC)."""
+        self.limited = True
+        self.reset_at = self.reset_at or parse_reset(str(text))
 
     def feed(self, event):
         kind = event.get('type')
@@ -237,6 +274,8 @@ class Parser:
                 self.usage, self.terminal = event.get('usage'), True
             elif kind in ('error', 'turn.failed'):
                 self.error = json.dumps(event.get('error') or event.get('message') or event)[:400]
+                if LIMIT.search(self.error):
+                    self.limit(self.error)
         elif self.provider == 'grok':
             if kind == 'text':
                 self.buffer += event.get('data') or ''
@@ -249,6 +288,8 @@ class Parser:
                     self.error = 'stopReason=' + str(event.get('stopReason'))
             elif kind == 'error':
                 self.error = json.dumps(event)[:400]
+                if LIMIT.search(self.error):
+                    self.limit(self.error)
             elif kind == 'tool_call':
                 # A tool call ends the current text segment; the last segment is the answer.
                 self.flush()
@@ -262,6 +303,9 @@ class Parser:
                 self.terminal = not event.get('is_error') and event.get('subtype') == 'success'
                 if not self.terminal:
                     self.error = 'result subtype=' + str(event.get('subtype'))
+                    if event.get('api_error_status') == 429 or (event.get('is_error') and LIMIT.search(self.message)):
+                        self.limit(self.message)
+                        self.error = 'usage limit: ' + self.message[:200]
 
     def flush(self):
         if self.buffer.strip():
@@ -370,7 +414,7 @@ def execute(args, project, resume=False):
               'totals': None, 'lean': lean, 'role': getattr(args, 'role', None) or (previous or {}).get('role'),
               'model': model, 'effort': effort, 'session_id': session if provider != 'codex' or resume else None,
               'pid': None, 'runner_pid': os.getpid(), 'runner_start': start_identity(os.getpid()),
-              'exit_code': None, 'cost_usd': None, 'usage': None, 'summary': None, 'error': None,
+              'exit_code': None, 'cost_usd': None, 'usage': None, 'summary': None, 'error': None, 'reset_at': None,
               'project': str(project), 'cwd': str(cwd), 'branch': branch, 'base': base, 'diffstat': None,
               'started_at': now(), 'ended_at': None, 'duration_s': None, 'limits': limits, 'argv': argv,
               'events': str(run / 'events.jsonl'), 'stderr': str(run / 'stderr.log'),
@@ -390,8 +434,19 @@ def execute(args, project, resume=False):
         events.write(json.dumps({'type': 'pstack.' + kind, 'at': now(), 'attempt': attempt, **fields}) + '\n')
         events.flush()
 
+    remotes = git(cwd, 'remote', check=False).split()
+    scratch = run / 'gh-config'
+    scratch.mkdir(exist_ok=True)
+    exclude = git(cwd, 'rev-parse', '--path-format=absolute', '--git-path', 'info/exclude', check=False)
+    if exclude and branch:
+        # The checkpoint is resume state, not a deliverable; keep it out of the worker's commits.
+        path = Path(exclude)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        line = f'CHECKPOINT.{args.task}.md\n'
+        if line not in (path.read_text() if path.is_file() else ''):
+            path.write_text((path.read_text() if path.is_file() else '') + line)
     started = time.monotonic()
-    process = subprocess.Popen(argv, cwd=cwd, env=environment(provider, guard_hooks(run, cwd, branch), branch),
+    process = subprocess.Popen(argv, cwd=cwd, env=environment(provider, guard_hooks(run, cwd, branch), branch, remotes, scratch),
                                start_new_session=True,
                                stdin=open(stdin_path) if stdin_path else subprocess.DEVNULL,
                                stdout=subprocess.PIPE, stderr=open(run / 'stderr.log', 'a'), text=True, errors='replace')
@@ -474,6 +529,8 @@ def execute(args, project, resume=False):
         final.write_text(message + ('\n' if message else ''))
     if stop['state']:
         state = stop['state']
+    elif parser.limited:
+        state = 'limited'
     elif code == 0 and parser.terminal and message.strip():
         state = 'succeeded'
     else:
@@ -488,6 +545,7 @@ def execute(args, project, resume=False):
         summary = summary[:SUMMARY_LIMIT].rstrip() + ' …'
     status.update(state=state, exit_code=code, session_id=parser.session, cost_usd=parser.cost, usage=parser.usage,
                   summary=summary or None, summary_truncated=truncated, error=error, ended_at=now(),
+                  reset_at=parser.reset_at if state == 'limited' else None,
                   duration_s=round(time.monotonic() - started, 1),
                   diffstat=diffstat(cwd, base) if base and (branch or mode == 'write') else None)
     status['attempts'].append({key: status.get(key) for key in ATTEMPT_KEYS})
@@ -522,7 +580,7 @@ def totals(attempts):
 def receipt(status):
     """One line for the coordinator: cost_usd and duration_s are this attempt, total_* cover the task."""
     keys = ('task_id', 'provider', 'state', 'exit_code', 'model', 'effort', 'session_id', 'attempt', 'cost_usd',
-            'duration_s', 'summary', 'summary_truncated', 'last_message', 'error', 'cwd', 'branch')
+            'duration_s', 'summary', 'summary_truncated', 'last_message', 'error', 'reset_at', 'cwd', 'branch')
     result = {key: status.get(key) for key in keys}
     overall = status.get('totals') or {}
     result.update(total_cost_usd=overall.get('cost_usd'), total_duration_s=overall.get('duration_s'))

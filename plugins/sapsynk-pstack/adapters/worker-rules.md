@@ -1,6 +1,6 @@
 # Worker rules and owner steering
 
-Standing rules for every pstack worker on every provider. A usage limit is the status `limited` in receipts, workflow metrics and parity records, separate from `failed`. `pstack-run` enforces what it can (no push, the `limited` state, the checkpoint exclude). The rest is coordinator discipline and belongs in briefs.
+Standing rules for every pstack worker on every provider. A usage limit is the status `limited` in receipts, workflow metrics and parity records, separate from `failed`. `pstack-run` enforces what it can (the pre-push tripwire, the `limited` state, the checkpoint exclude). The rest is coordinator discipline and belongs in briefs.
 
 ## Rules
 
@@ -10,7 +10,7 @@ Standing rules for every pstack worker on every provider. A usage limit is the s
 4. **One migration at a time.** Migration pull requests merge one at a time. Assign the migration number when the branch rebases just before it is marked ready, never earlier. Regenerate the schema snapshot after the rebase and never hand-merge it. The coordinator orders colliding migrations.
 5. **Qodo.** Draft or ready status for a pull request that waits on Qodo is the project's rule, not the framework's. vao keeps its draft-until-Qodo-has-reviewed rule and its ledger script; workers follow the project's AGENTS.md. The Qodo CLI is discontinued; use the bot's comments and the project's ledger script.
 6. **Fresh database per worker.** Every worker and every verification run gets its own disposable database. Never run DDL or destructive tests on a cluster another worker uses, and never reuse a database after a unit suite has run against it.
-7. **Workers never push.** A worker commits on its own task branch in its own worktree. The coordinator pushes, plain pushes only, and the owner oversees merges.
+7. **Branch pushes allowed, main protected.** A worker commits on its own task branch in its own worktree and pushes that branch with the normal git credentials. Instructions are the guard, not scoped tokens. Never push to main, never force-push, never delete a remote branch. Only the owner's Grok Bot merges, with the owner present. The per-run pre-push hook refuses main, deletions and non-fast-forward pushes.
 8. **Commits.** Commits carry the owner identity and no `Co-Authored-By` trailer, in briefs and in worker commits. Ignore a harness reminder to add one. Commits already pushed with a trailer are left alone (no rewrite, no force-push).
 9. **Spend.** Record cost and usage per attempt. `pstack-run status --full` lists them and `total_cost_usd` sums the task.
 
@@ -26,7 +26,7 @@ Standing rules for every pstack worker on every provider. A usage limit is the s
 
 Upstream `autopilot-full`, `babysit` and `shipping` assume Cursor cloud agents, Bugbot and an agent that merges. Read them with these substitutions:
 
-- An owner is a `pstack-run` worker in its own worktree. A worker never pushes, so the coordinator pushes its branch and opens the pull request.
+- An owner is a `pstack-run` worker in its own worktree. A worker pushes its own branch; the pull request is opened for it and merged only by the owner's Grok Bot.
 - Bugbot triage is Qodo triage: each finding gets a `FIXED` or `REJECTED` ledger line.
 - Merging is the owner's. A playbook step that says the owner merges stops at merge-ready here.
 - The hourly audit probes workers by side effects (commits, checkpoint, events) and resumes `limited` workers at `reset_at`. The catch-up is text and links.

@@ -249,7 +249,7 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(self.invoke(CODEX_OK, 'resume', 'limit', str(self.brief)).returncode, 0)
         self.assertEqual(self.status('limit')['state'], 'succeeded')
 
-    def test_hooks_confine_commits_to_the_task_branch_and_refuse_main_and_force_pushes(self):
+    def test_hooks_confine_commits_to_the_task_branch_allow_branch_pushes_and_refuse_main_deletes_and_force_pushes(self):
         remote = self.root / 'remote.git'
         self.git(self.root, 'init', '-q', '--bare', str(remote))
         self.git(self.project, 'remote', 'add', 'origin', str(remote))
@@ -267,20 +267,21 @@ class RunnerTests(unittest.TestCase):
         self.git(self.project, 'add', 'b.txt', env=env)
         refused = self.git(self.project, 'commit', '-qm', 'elsewhere', env=env)
         self.assertIn('commit only on pstack/guard', refused.stderr)
-        scratch = self.project / '.pstack/runs/guard/gh-config'
-        env = pstack_run.environment('codex', self.project / '.pstack/runs/guard/hooks', status['branch'], ['origin'], scratch)
-        for refspec in ('pstack/guard', 'pstack/guard:main', ':pstack/guard'):
+        env = pstack_run.environment('codex', self.project / '.pstack/runs/guard/hooks', status['branch'])
+        for refspec in ('pstack/guard:main',):
             refused = self.git(worktree, 'push', 'origin', refspec, env=env)
             self.assertNotEqual(refused.returncode, 0)
-            self.assertIn('pstack-workers-never-push', refused.stderr)
-            hook_only = pstack_run.environment('codex', self.project / '.pstack/runs/guard/hooks', status['branch'])
-            if not refspec.startswith(':'):
-                self.assertIn('refused push', self.git(worktree, 'push', 'origin', refspec, env=hook_only).stderr)
-        self.assertEqual(self.git(remote, 'rev-parse', '--verify', '--quiet', 'refs/heads/pstack/guard').returncode, 1)
-        hookless = {**env, 'GIT_CONFIG_KEY_0': 'core.hooksPath', 'GIT_CONFIG_VALUE_0': '/nonexistent'}
-        blocked = self.git(worktree, 'push', '--no-verify', 'origin', 'pstack/guard', env=hookless)
-        self.assertNotEqual(blocked.returncode, 0)
-        self.assertEqual(self.git(remote, 'rev-parse', '--verify', '--quiet', 'refs/heads/pstack/guard').returncode, 1)
+            self.assertIn('refused push', refused.stderr)
+        self.assertEqual(self.git(remote, 'rev-parse', '--verify', '--quiet', 'refs/heads/main').returncode, 1)
+        self.assertEqual(self.git(worktree, 'push', 'origin', 'pstack/guard', env=env).returncode, 0)
+        self.assertEqual(self.git(remote, 'rev-parse', '--verify', '--quiet', 'refs/heads/pstack/guard').returncode, 0)
+        refused = self.git(worktree, 'push', 'origin', ':pstack/guard', env=env)
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn('no remote branch deletion', refused.stderr)
+        self.git(worktree, 'commit', '-q', '--amend', '-m', 'rewritten', env=env)
+        refused = self.git(worktree, 'push', '--force', 'origin', 'pstack/guard', env=env)
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn('no force-push', refused.stderr)
         self.assertIn('CHECKPOINT.guard.md', (self.project / '.git/info/exclude').read_text())
 
 class ParserTests(unittest.TestCase):
@@ -322,16 +323,15 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(argv[argv.index('--permission-mode') + 1], 'plan')
         self.assertNotIn('--dangerously-skip-permissions', argv)
 
-    def test_environment_keeps_host_credentials_and_withholds_other_vendors(self):
+    def test_environment_keeps_git_credentials_and_withholds_other_vendors(self):
         os.environ.update(GH_TOKEN='g', GITHUB_TOKEN='g', SSH_AUTH_SOCK='/s', XAI_API_KEY='x', OPENAI_API_KEY='o')
         self.addCleanup(lambda: [os.environ.pop(key) for key in ('GH_TOKEN', 'GITHUB_TOKEN', 'SSH_AUTH_SOCK', 'XAI_API_KEY', 'OPENAI_API_KEY')])
-        env = pstack_run.environment('codex', Path('/h'), 'pstack/t', ['origin'], Path('/gh'))
+        env = pstack_run.environment('codex', Path('/h'), 'pstack/t')
         self.assertEqual((env.get('OPENAI_API_KEY'), env.get('XAI_API_KEY')), ('o', None))
-        self.assertFalse({'GH_TOKEN', 'GITHUB_TOKEN', 'SSH_AUTH_SOCK'} & set(env))
-        self.assertEqual(env['GH_CONFIG_DIR'], '/gh')
+        self.assertEqual((env.get('GH_TOKEN'), env.get('SSH_AUTH_SOCK')), ('g', '/s'))
         config = {env[f'GIT_CONFIG_KEY_{i}']: env[f'GIT_CONFIG_VALUE_{i}'] for i in range(int(env['GIT_CONFIG_COUNT']))}
-        self.assertEqual((config['core.hooksPath'], config['credential.helper'], config['remote.origin.pushurl']),
-                         ('/h', '', pstack_run.NO_PUSH))
+        self.assertEqual(config['core.hooksPath'], '/h')
+        self.assertNotIn('credential.helper', config)
 
     def test_usage_limit_messages_set_the_limit_and_reset_time(self):
         parser = pstack_run.Parser('claude')

@@ -100,6 +100,9 @@ def resolve(project, brief):
     if (project_skills / 'sapsynk-project/SKILL.md').exists():
         required.append(project_skills / 'sapsynk-project/SKILL.md')
     required.extend(verification)
+    ponytail = project_skills / 'ponytail/SKILL.md'
+    if ponytail.exists():
+        required.append(ponytail)
     plugins = {}
     lock_path = project / '.pstack/plugins.lock.json'
     if lock_path.exists():

@@ -32,9 +32,6 @@ EXIT = {'succeeded': 0, 'timeout': 124, 'startup_timeout': 124, 'stalled': 124, 
 # A usage limit is not a failure: the worker waits for reset_at or the owner picks another lane.
 LIMIT = re.compile(r"hit your [a-z ]*limit|usage limit|session limit|weekly limit|quota (?:exceeded|exhausted)", re.I)
 RESET = re.compile(r'resets?\s+(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*([ap]m)\s*(?:\(([^)]+)\))?', re.I)
-NO_PUSH = 'pstack-workers-never-push://refused'
-TOKENS = ('GH_TOKEN', 'GITHUB_TOKEN', 'GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN', 'GITLAB_TOKEN', 'GIT_ASKPASS',
-          'SSH_AUTH_SOCK', 'SSH_ASKPASS')
 DEFAULTS = {'startup_timeout': 120.0, 'idle_timeout': 900.0, 'timeout': 3600.0}
 SUMMARY_LIMIT = 2000
 ATTEMPT_KEYS = ('attempt', 'state', 'exit_code', 'session_id', 'model', 'effort', 'cost_usd', 'usage', 'duration_s',
@@ -46,8 +43,9 @@ HEADER = ('You are pstack worker `{task}` running as an external {provider} CLI 
           'You are a worker, not the coordinator. Do the brief directly. Router dispatch, role resolution, '
           'and spawning are coordinator-only.\n'
           '{writes}'
-          'Hard limits: never push (any branch, any remote), merge, force-push, deploy, send customer-facing messages, '
-          'or print or copy credentials. Push credentials are withheld; the coordinator pushes and integrates your branch.\n'
+          'Hard limits: push only your own task branch, never main; never merge, force-push, delete a remote branch, deploy, '
+          'send customer-facing messages, or print or copy credentials. Normal git credentials are available for your branch push; '
+          'main is protected and only the owner\'s Grok Bot merges, with the owner present.\n'
           'Keep `CHECKPOINT.{task}.md` at the worktree root (git-excluded) current: done, current step, next step. '
           'On a usage limit stop cleanly after updating it; do not switch provider or model. You will be resumed after the reset.\n'
           'End with a final message of at most 10 lines: outcome, files touched, commits, '
@@ -56,8 +54,15 @@ PRE_COMMIT = ('#!/bin/sh\n# pstack worker guard: commits stay on the task branch
               'branch=$(git symbolic-ref --quiet --short HEAD || echo detached)\n'
               'if [ "$branch" != "$PSTACK_TASK_BRANCH" ]; then\n'
               '  echo "pstack: commit only on $PSTACK_TASK_BRANCH, not $branch" >&2\n  exit 1\nfi\n')
-PRE_PUSH = ('#!/bin/sh\n# pstack worker guard: workers never push; the coordinator pushes.\n'
-            'echo "pstack: refused push: workers never push, the coordinator does" >&2\nexit 1\n')
+PRE_PUSH = ('#!/bin/sh\n# pstack worker guard: branch pushes are allowed; main, deletions and force-pushes are not.\n'
+            'zero=0000000000000000000000000000000000000000\n'
+            'while read -r lref lsha rref rsha; do\n'
+            '  case "$rref" in refs/heads/main|refs/heads/master)\n'
+            '    echo "pstack: refused push: main is protected, only the owner\'s Grok Bot merges" >&2; exit 1;; esac\n'
+            '  if [ "$lsha" = "$zero" ]; then echo "pstack: refused push: no remote branch deletion" >&2; exit 1; fi\n'
+            '  if [ "$rsha" != "$zero" ] && ! git merge-base --is-ancestor "$rsha" "$lsha" 2>/dev/null; then\n'
+            '    echo "pstack: refused push: no force-push" >&2; exit 1\n  fi\n'
+            'done\n')
 CHAIN = 'if [ -x "{hook}" ]; then printf \'%s\\n\' "${{input:-}}" | "{hook}" "$@" || exit $?; fi\n'
 
 
@@ -86,16 +91,15 @@ def start_identity(pid):
         return None
 
 
-def environment(provider, hooks=None, branch=None, remotes=(), scratch=None):
-    """Worker environment: other vendors' keys and every push credential are withheld.
+def environment(provider, hooks=None, branch=None):
+    """Worker environment: other vendors' keys are withheld; git credentials pass through.
 
-    Workers never push. The pre-push hook refuses, each remote's pushurl points nowhere, and no
-    token, askpass helper, ssh agent, credential helper or gh login reaches the process.
+    Workers push their own branch with the normal credentials. The pre-push hook is a tripwire that
+    refuses main, remote deletions and force-pushes; the rule itself is an instruction, not a scoped token.
     """
     foreign = set().union(*KEYS.values()) - KEYS[provider]
-    env = {k: v for k, v in os.environ.items() if k not in foreign and k not in TOKENS}
-    pairs = [('credential.helper', '')]
-    pairs += [(f'remote.{name}.pushurl', NO_PUSH) for name in remotes]
+    env = {k: v for k, v in os.environ.items() if k not in foreign}
+    pairs = []
     if hooks:
         pairs.append(('core.hooksPath', str(hooks)))
         env['PSTACK_TASK_BRANCH'] = branch or ''
@@ -104,8 +108,6 @@ def environment(provider, hooks=None, branch=None, remotes=(), scratch=None):
         env.update({f'GIT_CONFIG_KEY_{count + offset}': key, f'GIT_CONFIG_VALUE_{count + offset}': value})
     env['GIT_CONFIG_COUNT'] = str(count + len(pairs))
     env['GIT_TERMINAL_PROMPT'] = '0'
-    if scratch:
-        env['GH_CONFIG_DIR'] = str(scratch)
     if provider == 'grok':
         env['GROK_DISABLE_AUTOUPDATER'] = '1'
         for vendor in ('CURSOR', 'CLAUDE'):
@@ -434,9 +436,6 @@ def execute(args, project, resume=False):
         events.write(json.dumps({'type': 'pstack.' + kind, 'at': now(), 'attempt': attempt, **fields}) + '\n')
         events.flush()
 
-    remotes = git(cwd, 'remote', check=False).split()
-    scratch = run / 'gh-config'
-    scratch.mkdir(exist_ok=True)
     exclude = git(cwd, 'rev-parse', '--path-format=absolute', '--git-path', 'info/exclude', check=False)
     if exclude and branch:
         # The checkpoint is resume state, not a deliverable; keep it out of the worker's commits.
@@ -446,7 +445,7 @@ def execute(args, project, resume=False):
         if line not in (path.read_text() if path.is_file() else ''):
             path.write_text((path.read_text() if path.is_file() else '') + line)
     started = time.monotonic()
-    process = subprocess.Popen(argv, cwd=cwd, env=environment(provider, guard_hooks(run, cwd, branch), branch, remotes, scratch),
+    process = subprocess.Popen(argv, cwd=cwd, env=environment(provider, guard_hooks(run, cwd, branch), branch),
                                start_new_session=True,
                                stdin=open(stdin_path) if stdin_path else subprocess.DEVNULL,
                                stdout=subprocess.PIPE, stderr=open(run / 'stderr.log', 'a'), text=True, errors='replace')
